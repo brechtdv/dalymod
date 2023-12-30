@@ -1,0 +1,11 @@
+Package: dalymod
+Title: Disease Model Based DALY Calculation
+Version: 0.0.1
+Date: 2023-12-30
+Authors@R: person("Brecht", "Devleesschauwer", role = c("aut", "cre"),
+	              email = "brechtdv@gmail.com")
+Author: Brecht Devleesschauwer [aut, cre]
+Maintainer: Brecht Devleesschauwer <brechtdv@gmail.com>
+Description: A flexible framework for calculating Disability-Adjusted Life Years.
+Depends: R (>= 4.3.0)
+License: GPL-3
