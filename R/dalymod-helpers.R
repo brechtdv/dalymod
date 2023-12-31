@@ -1,5 +1,5 @@
 ###=========================================================================#
-### DALY calculation helpers
+### dalymod helpers 
 ###=========================================================================#
 
 ###=========================================================================#
@@ -25,7 +25,6 @@
 ###---| multiply_nodes
 ###-----| get_tree
 ###-- dalymod
-###-- dalycalc
 
 library(readxl)
 library(prevalence) #betaPERT
@@ -80,6 +79,8 @@ import_node <-
     
     ## define row numbers
     row_type <- which(xl_node[[1]] == "TYPE")
+    row_cnt <- which(xl_node[[1]] == "CONTRIBUTION")
+    row_inc <- which(xl_node[[1]] == "INCIDENCE")
     row_val <- which(xl_node[[1]] == "VALUE")
     row_dur <- which(xl_node[[1]] == "DURATION")
     row_dsw <- which(xl_node[[1]] == "DISABILITY WEIGHT")
@@ -89,6 +90,10 @@ import_node <-
     ## setup node
     dismod_node <- list()
 
+    ## setup node settings
+    dismod_node$set$contribution <- xl_node[row_cnt, 2]
+    dismod_node$set$incidence <- xl_node[row_inc, 2]
+    
     ## setup node value
     dismod_node$val <- list()
     dismod_node$val$type <- xl_node[row_type, 2]  
@@ -457,233 +462,7 @@ normalize_splits <-
   }
 
 ##--------------------------------------------------------------------------#
-## main wrapper functions --------------------------------------------------#
-
-dalymod <-
-  function(file, n_samples) {
-    ## import dalymod excel
-    dalymod <- import_dalymod(file)
-    
-    ## pre-sample nodes
-    dalymod <- pre_sample_dalymod(dalymod, n_samples)
-    
-    ## normalize splits
-    dalymod <- normalize_splits(dalymod)
-    
-    ## multiply nodes to get incidence per terminal node
-    dalymod <- multiply_dalymod(dalymod)
-    
-    ## return updated dalymod
-    return(dalymod)
-  }
-
-file <-
-  "C:/Users/BrDe394/Dropbox/#FERG2/#CTF/daly-calculation/ferg2-daly-anthrax.xlsx"
-dalymods <- dalymod(file, 5)
-
-## set year
-year <- 2010
-
-## aggregate population by age groups
-pop <- subset(FERG2:::pop, YEAR == year)
-pop$AGE2 <- cut(pop$AGE, c(seq(0, 85, 5), Inf), right = FALSE)
-pop2 <- aggregate(POP ~ AGE2 + SEX + ISO3, pop, sum)
-names(pop2)[names(pop2) == "AGE2"] <- "AGE"
-str(pop2)
-
-dalycalc <-
-  function(dalymod, year, pop) {
-    
-  }
-
-
-split_age_string <-
-  function(age) {
-    age_full <-
-      if (grepl("<", age)) {
-        seq(0, as.numeric(gsub("<", "", age)), 5)
-        
-      } else if (grepl("\\+", age)) {
-        c(seq(as.numeric(gsub("\\+", "", age)), 85, 5), Inf)
-        
-      } else {
-        seq(as.numeric(gsub("-.*", "", age)),
-            as.numeric(gsub(".*-", "", age)) + 1,
-            5)
-      }
-    age_full <- levels(cut(1:100, age_full, right = FALSE))
-    return(age_full)
-  }
-
-split_sex_string <-
-  function(sex) {
-    sex_full <-
-      if (sex == "Both sexes") {
-        c("Male", "Female")
-        
-      } else {
-        sex_full
-      }
-    return(sex_full)
-  }
-
-split_agesex <-
-  function(agesex_agg, country) {
-    agesex_agg_pop <-
-      expand.grid(
-        AGE = split_age_string(agesex_agg$AGE),
-        SEX = split_sex_string(agesex_agg$SEX))
-    agesex_agg_pop <-
-      merge(agesex_agg_pop, subset(pop2, ISO3 == country))
-    agesex_agg_pop$W <-
-      agesex_agg_pop$POP / sum(agesex_agg_pop$POP)
-    agesex_agg_pop$INC_NR <-
-      lapply(agesex_agg_pop$W, function(x) x * agesex_agg$INC_NR)
-    
-    agesex_agg_pop$W <- NULL
-    agesex_agg_pop$ISO3 <- NULL
-    
-    apply(agesex_agg_pop, 1, as.list)
-  }
-
-split_agesex_all <-
-  function(agesex_agg_all, country) {
-    agesex_all <- sapply(agesex_agg_all, split_agesex, "ZWE")
-    agesex_all <- unlist(agesex_all, recursive = FALSE)
-    return(agesex_all)
-  }
-
-
-
-node <- dalymods$nodes$split_cutaneous_mild
-
-## TO DO
-## .. add contribution/inc to nodes
-## .. calculate YLD, YLL ifo contrib
-## .. .. calculate rle per age/sex
-## .. apply dalycalc_node to all nodes > dalycalc
-## .. calculate summaries across nodes > sum yld, yll, inc by country
-## .. .. summary ~ age, sex, ..
-## .. calculate aggregates across countries
-
-dalycalc_node <-
-  function(node, year, pop) {
-    ## aggregate pop by country
-    pop_agg <- aggregate(POP ~ ISO3, pop, sum)
-
-    ## expand countries if needed
-    if (node$inc$COUNTRY == "ALL") {
-      node_inc <- cbind(pop_agg$ISO3, node$inc)
-      node_inc$COUNTRY <- NULL
-      names(node_inc)[names(node_inc) == "pop_agg$ISO3"] <- "COUNTRY"
-    }
-
-    ## add year if needed
-    if (node$inc$YEAR == "ALL") {
-      node_inc$YEAR <- year
-    }
-    
-    ## merge incidence and population
-    node_inc <- merge(node_inc, pop_agg, by.x = "COUNTRY", by.y = "ISO3")
-    
-    ## multiply inc with pop
-    node_inc$INC_NR <-
-      apply(node_inc, 1,
-            function(x) x[["POP"]] * x[["SAMPLES"]], simplify = FALSE)
-    
-    ## setup age split
-    age_split <- node$age$samp
-    age_split$YEAR <- NULL
-    if (age_split$COUNTRY == "ALL") {
-      age_split <- cbind(pop_agg$ISO3, age_split)
-      age_split$COUNTRY <- NULL
-      names(age_split)[names(age_split) == "pop_agg$ISO3"] <- "COUNTRY"
-    }
-    rownames(age_split) <- age_split$COUNTRY
-    age_split$COUNTRY <- NULL
-    age_names <- names(age_split)
-    
-    ## setup sex split
-    sex_split <- node$sex$samp
-    sex_split$YEAR <- NULL
-    if (sex_split$COUNTRY == "ALL") {
-      sex_split <- cbind(pop_agg$ISO3, sex_split)
-      sex_split$COUNTRY <- NULL
-      names(sex_split)[names(sex_split) == "pop_agg$ISO3"] <- "COUNTRY"
-    }
-    rownames(sex_split) <- sex_split$COUNTRY
-    sex_split$COUNTRY <- NULL
-    sex_names <- names(sex_split)
-    
-    ## stratify cases by age ~ dist
-    dalycalc_agg <- vector("list", nrow(node_inc))
-    names(dalycalc_agg) <- node_inc$COUNTRY
-
-    # loop over countries
-    for (i in seq_along(dalycalc_agg)) {
-      id <- 0
-      dalycalc_agg[[i]] <-
-        vector("list", length(age_names) * length(sex_names))
-      
-      # loop over age groups
-      for (j in seq_along(age_names)) {
-      
-        # loop over sexes
-        for (k in seq_along(sex_names)) {
-          id <- id + 1
-          dalycalc_agg[[i]][[id]]$AGE <- age_names[j]
-          dalycalc_agg[[i]][[id]]$SEX <- sex_names[k]
-          dalycalc_agg[[i]][[id]]$INC_NR <-
-            node_inc$INC_NR[[i]] *
-              age_split[[age_names[j]]][[i]] *
-              sex_split[[sex_names[k]]][[i]]
-        }
-      }
-    }
-
-    ## stratify cases by age ~ full
-    dalycalc_all <-
-    lapply(
-      names(dalycalc_agg),
-      function(x) split_agesex_all(dalycalc_agg[[x]], x))
-    names(dalycalc_all) <- names(dalycalc_agg)
-
-    dalycalc_all[[1]]
-    
-    ## calculate YLD
-    if (node$contribution == "YLD") {
-      for (i in seq_along(dalycalc_all)) {
-        for (j in seq_along(dalycalc_all[[i]])){
-          dalycalc_all[[i]][[j]]$YLD_NR <-
-            dalycalc_all[[i]][[j]]$INC_NR * 
-            node$dur$samp$SAMPLES *
-            node$dsw$samp$SAMPLES
-        }
-      }
-    }
-
-    ## calculate YLL
-    if (node$contribution == "YLL") {
-      for (i in seq_along(dalycalc_all)) {
-        for (j in seq_along(dalycalc_all[[i]])){
-          dalycalc_all[[i]][[j]]$YLL_NR <-
-            dalycalc_all[[i]][[j]]$INC_NR * 
-            node$dur$samp$SAMPLES
-        }
-      }
-    }
-    
-    ## return dalycalc node
-    return(dalycalc_all)
-}
-
-             
-    ## ISO > 18*2 > AGE,SEX,POP,INC_NR,INC_RT,YLD_NR,YLD_RT,YLL_NR,YLL_RT
-
-    ## calculate YLD
-    ## calculate YLL
-    ## calculate INC
-    
+## multiply values across tree ---------------------------------------------#
 
 multiply_dalymod <-
   function(dalymod) {
@@ -707,10 +486,10 @@ multiply_nodes <-
     ## compile samples in nested list
     samp_list <- lapply(tree, function(x) dalymod$nodes[[x]]$val$samp$SAMPLES)
     n_inner <- length(samp_list[[1]]) # number of country-years
-
+    
     ## prepare output
     inc <- dalymod$nodes[[node]]$val$samp[, 1:2]
-
+    
     ## loop over samples and calculate product
     for (j in seq(n_inner)) {
       samp_list_prod <- apply(sapply(samp_list, function(x) x[[j]]), 1, prod)
@@ -731,51 +510,23 @@ get_tree <-
     return(head(tree, -1))
   }
 
+##--------------------------------------------------------------------------#
+## main wrapper functions --------------------------------------------------#
 
-
-
-dalycalc
-
-n_samples <- 1e5
-
-expand.grid(
-  COUNTRY = c("BEL", "ETH"),
-  YEAR = 2000:2020,
-  AGE = 1:18,
-  SEX = 1:2)
-
-INC/DUR/DSW/YLD
-INC/RLE/YLL
-
-dalymod
-
-dalycalc <- list()
-dalycalc$inc <- vector("list", length(nodes))
-dalycalc$yld <- vector("list", length(nodes))
-dalycalc$yll <- vector("list", length(nodes))
-
-names(dalycalc$inc) <- nodes
-dalycalc$yld$split_cutaneous_mild <-
-  inc
-
-# dalycalc > per outcome, 5y age group
-# COUNTRY/YEAR/AGE/SEX/POP/INC_RT/DUR/DSW/YLD_RT/INC_NR/YLD_NR
-# COUNTRY/YEAR/AGE/SEX/POP/INC_RT/RLE/YLL_RT/INC_NR/YLL_NR
-# 
-# dalysum > grouped outcomes, 5vs5+
-# COUNTRY/YEAR/AGE/SEX/POP/INC_RT/YLD_RT/INC_NR/YLD_NR
-# COUNTRY/YEAR/AGE/SEX/POP/INC_RT/YLL_RT/INC_NR/YLL_NR
-# 
-# mean/UI
-# COUNTRY/YEAR/AGE/SEX/METRIC/MEASURE/VAL_MEAN/VAL_LWR/VAL_UPR
-# + regional groupings
-
-
-##
-##
-
-file <-
-  "C:/Users/BrDe394/Dropbox/#FERG2/#CTF/daly-calculation/ferg2-daly-anthrax.xlsx"
-dalymods <- dalymod(file, 5)
-object.size(dalymods)
-
+dalymod <-
+  function(file, n_samples) {
+    ## import dalymod excel
+    dalymod <- import_dalymod(file)
+    
+    ## pre-sample nodes
+    dalymod <- pre_sample_dalymod(dalymod, n_samples)
+    
+    ## normalize splits
+    dalymod <- normalize_splits(dalymod)
+    
+    ## multiply nodes to get incidence per terminal node
+    dalymod <- multiply_dalymod(dalymod)
+    
+    ## return updated dalymod
+    return(dalymod)
+  }
