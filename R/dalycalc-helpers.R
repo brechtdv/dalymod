@@ -231,63 +231,6 @@ get_rle <-
     subset(rle, AGE == age & SEX == sex)$RLE
   }
 
-##
-
-
-## import
-source("R/dalymod-helpers.R")
-file <-
-  "C:/Users/BrDe394/Dropbox/#FERG2/#CTF/daly-calculation/ferg2-daly-anthrax.xlsx"
-.dalymod <- dalymod(file, 5)
-
-## set year
-year <- 2010
-
-## aggregate population by age groups
-pop <- subset(FERG2:::pop, YEAR == year)
-pop$AGE2 <- cut(pop$AGE, c(seq(0, 85, 5), Inf), right = FALSE)
-pop2 <- aggregate(POP ~ AGE2 + SEX + ISO3, pop, sum)
-names(pop2)[names(pop2) == "AGE2"] <- "AGE"
-str(pop2)
-pop <- pop2
-
-## residual life expectancy
-# rle <- FERG2:::RLE
-rle <- cbind(pop2[1:36, 1:2], RLE = 1:36)
-
-
-## this creates the detailed calculations
-## .. all nodes, all countries, all age/sex groups
-.dalycalc <- dalycalc(.dalymod, year, pop, rle)
-saveRDS(.dalycalc, file = "dalycalc-anthrax.rds")
-
-## this aggregates estimates across nodes
-## .. all countries, all age/sex groups
-.dalycalc_country <- dalycalc_aggregate_nodes(.dalycalc)
-str(.dalycalc_country)
-.dalycalc_country$BEL
-.dalycalc_country_age$BEL
-.dalycalc_country$BEL[[1]]
-
-agesex <-
-  list(
-    "child" =
-      data.frame(
-        AGE = c("[0,5)", "[0,5)"),
-        SEX = c("Male", "Female")),
-    "adult" =
-      data.frame(
-        AGE = c("[5,10)", "[5,10)", "[10,15)", "[10,15)"),
-        SEX = c("Male", "Female", "Male", "Female")))
-
-## this aggregates estimates across age groups
-## .. all countries, broad age/sex groups
-.dalycalc_country_age <-
-  dalycalc_aggregate_agesex(.dalycalc_country, agesex)
-str(.dalycalc_country_age)
-.dalycalc_country_age[["BEL"]][[1]]
-.dalycalc_country_age[["BEL"]][[2]]
-
 ## TO DO
 
 ## .. export INC contrib
@@ -296,7 +239,7 @@ str(.dalycalc_country_age)
 
 list_sum <-
   function(x) {
-    rowSums(do.call("cbind", x))
+    rowSums(dplyr::bind_cols(x))
   }
 
 dalycalc_aggregate_nodes <-
@@ -359,15 +302,13 @@ dalycalc_aggregate_agesex <-
     return(dalycalc_agg)
   }
 
-.dalycalc_age <- .dalycalc_country_age
+#.dalycalc_age <- .dalycalc_country_age
 
 ## get samples in long format
 dalycalc_samples <-
   function() {
     
   }
-
-?geom_density
 
 ## this should work on .dalycalc_country and .dalycalc_country_age
 dalycalc_summary <-
@@ -396,8 +337,8 @@ dalycalc_summary_par_age <-
     return(out)
   }
 
-dalycalc_summary(.dalycalc_country_age)
-dalycalc_summary(.dalycalc_country_age)
+#dalycalc_summary(.dalycalc_country_age)
+#dalycalc_summary(.dalycalc_country_age)
 ## does not work because 'AGE' and 'SEX' not found
 
 
@@ -413,12 +354,4 @@ dalycalc_summary(.dalycalc_country_age)
 # COUNTRY/YEAR/AGE/SEX/METRIC/MEASURE/VAL_MEAN/VAL_LWR/VAL_UPR
 # + regional groupings
 
-
-##
-##
-
-file <-
-  "C:/Users/BrDe394/Dropbox/#FERG2/#CTF/daly-calculation/ferg2-daly-anthrax.xlsx"
-dalymods <- dalymod(file, 5)
-object.size(dalymods)
 
