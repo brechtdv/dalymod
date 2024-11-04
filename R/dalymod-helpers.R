@@ -307,7 +307,8 @@ pre_sample_age <-
     age_names <- age_names[age_names != "NA"]
     
     ## if sum to one, assume fixed
-    if (sum(as.numeric(input$data[, age_names])) == nrow(input$data)) {
+    if (all.equal(
+          sum(as.numeric(input$data[, age_names])), nrow(input$data))) {
       samples <-
         apply(input$data[, age_names], 1,
               function(x) sapply(as.numeric(x), rep, each = n_samples),
@@ -363,7 +364,8 @@ pre_sample_sex <-
       sex_names <- names(input$data)[3:4]
       
       ## if sum to one, assume fixed
-      if (sum(as.numeric(input$data[, 3:4])) == nrow(input$data)) {
+      if (all.equal(
+            sum(as.numeric(input$data[, 3:4])), nrow(input$data))) {
         samples <-
           apply(input$data[, 3:4], 1,
                 function(x) sapply(as.numeric(x), rep, each = n_samples),
@@ -517,16 +519,16 @@ dalymod <-
   function(file, n_samples) {
     ## import dalymod excel
     dalymod <- import_dalymod(file)
-    
+
     ## pre-sample nodes
     dalymod <- pre_sample_dalymod(dalymod, n_samples)
-    
+
     ## normalize splits
     dalymod <- normalize_splits(dalymod)
-    
+
     ## multiply nodes to get incidence per terminal node
     dalymod <- multiply_dalymod(dalymod)
-    
+
     ## return updated dalymod
     return(dalymod)
   }
