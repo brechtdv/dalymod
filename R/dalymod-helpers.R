@@ -20,6 +20,7 @@
 ###---------| sim_mean_ci ... actual sampler, mean & 95%CI
 ###---------| optim_gamma ... find gamma pars through optimization
 ###---------| optim_beta .... find beta pars through optimization
+###---------| betaPert ...... calculate beta pars for PERT
 ###-- normalize_splits ...... normalize samples for splits
 ###-- multiply_dalymod
 ###---| multiply_nodes
@@ -27,7 +28,6 @@
 ###-- dalymod
 
 library(readxl)
-library(prevalence) #betaPERT
 
 ##--------------------------------------------------------------------------#
 ## generic helpers ---------------------------------------------------------#
@@ -63,9 +63,10 @@ import_dalymod <-
     ## read Excel nodes
     nodes <- xl_dismod$NODE
     xl_nodes <- vector("list", length(nodes))
-    names(xl_nodes) <- tolower(nodes)
+    #names(xl_nodes) <- tolower(nodes)
+    names(xl_nodes) <- nodes
     for (i in seq_along(nodes)) {
-      xl_nodes[[i]] <- import_node(nodes[i])
+      xl_nodes[[i]] <- import_node(file, nodes[i])
     }
     
     ## return import
@@ -73,7 +74,7 @@ import_dalymod <-
   }
 
 import_node <-
-  function(node) {
+  function(file, node) {
     ## read Excel node
     xl_node <- read_excel_base(file, node, col_names = FALSE)
     
@@ -181,6 +182,52 @@ optim_beta <-
     return(c(shape1, shape2))
   }
 
+## calculate beta pars for PERT
+betaPERT <-
+function (a, m, b, k = 4, method = c("classic", "vose")) {
+  if (!exists("a")) 
+      stop("'a' is missing")
+  if (!exists("m")) 
+      stop("'m' is missing")
+  if (!exists("b")) 
+      stop("'b' is missing")
+  if (!is.numeric(a)) 
+      stop("'a' must be a numeric value")
+  if (!is.numeric(m)) 
+      stop("'m' must be a numeric value")
+  if (!is.numeric(b)) 
+      stop("'b' must be a numeric value")
+  if (!exists("method")) 
+      stop("'method' is missing")
+  method <- match.arg(method)
+  if (method == "classic") {
+      if (!exists("k")) 
+          stop("'k' is missing")
+      if (!is.numeric(k)) 
+          stop("'k' must be a numeric value")
+      mu <- (a + k * m + b)/(k + 2)
+      sdev <- (b - a)/(k + 2)
+      alpha <- ((mu - a)/(b - a)) * (((mu - a) * (b - mu)/(sdev^2)) - 
+          1)
+      beta <- alpha * (b - mu)/(mu - a)
+  }
+  if (method == "vose") {
+      if (!exists("k")) 
+          stop("'k' is missing")
+      if (!is.numeric(k)) 
+          stop("'k' must be a numeric value")
+      mu <- (a + k * m + b)/(k + 2)
+      alpha <- ifelse(mu == m, 1 + k/2, ((mu - a) * (2 * m - 
+          a - b))/((m - mu) * (b - a)))
+      beta <- alpha * (b - mu)/(mu - a)
+  }
+  out <- list(alpha = alpha, beta = beta, a = a, m = m, b = b, 
+      method = method)
+  class(out) <- "betaPERT"
+  return(out)
+}
+
+
 ##--------------------------------------------------------------------------#
 ## samplers ----------------------------------------------------------------#
 
@@ -212,7 +259,7 @@ sim_pert <-
 
 sim_mean_ci <-
   function(n, mean, lwr, upr, type) {
-    if (type == "INC") {
+    if (type %in% c("INC", "RATIO")) {
       pars_gamma <- optim_gamma(c(lwr, mean, upr), 0.95)
       samples <- sim_gamma(n, pars_gamma[1], pars_gamma[2])
       
@@ -278,7 +325,7 @@ pre_sample_input <-
             as.numeric(input$data$Min),
             as.numeric(input$data$Max),
             n = n_samples),
-        "Min/Mode/Max" =
+        "Mode/Min/Max" =
           mapply(
             sim_pert,
             as.numeric(input$data$Mode),
