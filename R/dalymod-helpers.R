@@ -12,6 +12,7 @@
 ###-----| pre_sample_input .. pre-sampler for VAL,DUR,DSW
 ###-----| pre_sample_age .... pre-sampler for AGE type
 ###-----| pre_sample_sex .... pre-sampler for SEX type
+###---------| get_samples ... actual sampler, get simulations from file
 ###---------| sim_fixed ..... actual sampler, fixed
 ###---------| sim_beta ...... actual sampler, beta
 ###---------| sim_gamma ..... actual sampler, gamma
@@ -231,6 +232,25 @@ function (a, m, b, k = 4, method = c("classic", "vose")) {
 ##--------------------------------------------------------------------------#
 ## samplers ----------------------------------------------------------------#
 
+get_samples <-
+function(n_samples, file) {
+  ## import file
+  f <- paste0("../ESTIMATES/", file)
+  if (!file.exists(f))
+    stop("File ", sQuote(file), " not found in 'ESTIMATES' folder.")
+  sim <- readRDS(f)
+
+  ## compile output containing country/year/samples
+  sim_samp <-
+    sim$SIM[, sample(seq(ncol(sim$SIM)), n_samples, replace = TRUE), drop = F]
+  sim_list <- apply(sim_samp, 1, c, simplify = FALSE)
+  sim_out <- sim[, c("COUNTRY", "YEAR")]
+  sim_out$SAMPLES <- sim_list
+
+  ## return output
+  return(sim_out)
+}
+
 sim_fixed <-
   function(n, par) {
     return(rep(par, n))
@@ -283,17 +303,15 @@ pre_sample_input <-
     ## -> deals with stratification uncertainty
     ## -> makes results reproducible
     set.seed(264)
-    
+
+    ## take samples from file
+    if (input$dist == "Simulations")
+      return(get_samples(n_samples, input$data$`File name`))
+
     ## generate samples
     samples <-
       switch(
         input$dist,
-        "Simulations" =
-          mapply(
-            sim_fixed,
-            NA,
-            n = n_samples),
-        #get_simulations(n_samples, pars, type),
         "Gamma" =
           mapply(
             sim_gamma,
