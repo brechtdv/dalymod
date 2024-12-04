@@ -370,7 +370,8 @@ pre_sample_age <-
     ## generate samples
     age_names <- tail(names(input$data), -2)
     age_names <- age_names[age_names != "NA"]
-    
+    age_names <- age_names[!is.na(age_names)]    
+
     ## if sum to one, assume fixed
     if (all.equal(
           sum(as.numeric(input$data[, age_names])), nrow(input$data))) {
