@@ -88,18 +88,21 @@ dalycalc <-
 
 dalycalc_node <-
   function(node, year, pop_country, pop, rle) {
-    ## expand countries if needed
-    if (node$inc$COUNTRY == "ALL") {
-      node_inc <- cbind(pop_country$ISO3, node$inc)
-      node_inc$COUNTRY <- NULL
-      names(node_inc)[names(node_inc) == "pop_country$ISO3"] <- "COUNTRY"
-    }
-
-    ## add year if needed
+    ## extract incidence
+    node_inc <- node$inc
+    
+    ## add or subset year if needed
     if (all(node_inc$YEAR == "ALL")) {
       node_inc$YEAR <- year
     } else {
       node_inc <- subset(node_inc, YEAR == year)
+    }
+    
+    ## expand countries if needed
+    if (all(node_inc$COUNTRY == "ALL")) {
+      node_inc <- cbind(pop_country$ISO3, node$inc)
+      node_inc$COUNTRY <- NULL
+      names(node_inc)[names(node_inc) == "pop_country$ISO3"] <- "COUNTRY"
     }
     
     ## merge incidence and population
