@@ -46,7 +46,7 @@ split_agesex <-
         AGE = split_age_string(agesex_agg$AGE),
         SEX = split_sex_string(agesex_agg$SEX))
     agesex_agg_pop <-
-      merge(agesex_agg_pop, subset(pop, ISO3 == country))
+      base::merge(agesex_agg_pop, subset(pop, ISO3 == country))
     agesex_agg_pop$W <-
       agesex_agg_pop$POP / sum(agesex_agg_pop$POP)
     agesex_agg_pop$INC_NR <-
@@ -106,7 +106,7 @@ dalycalc_node <-
     }
     
     ## merge incidence and population
-    node_inc <- merge(node_inc, pop_country, by.x = "COUNTRY", by.y = "ISO3")
+    node_inc <- base::merge(node_inc, pop_country, by.x = "COUNTRY", by.y = "ISO3")
     
     ## multiply inc with pop
     node_inc$INC_NR <-
