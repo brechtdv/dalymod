@@ -5,11 +5,11 @@
 ###=========================================================================#
 ###== FUNCTIONS ============================================================#
 ###-- settings ........... list object containing all settings functions
-###---| settings_get .....
-###---| settings_set .....
-###-----| resolve ........
-###-----| merge ..........
-###-------| merge_list ...
+###---| settings_get ..... get settings by name
+###---| settings_set ..... set settings
+###-----| resolve ........ extract ... elements as list
+###-----| merge .......... merge new settings into existing list
+###-------| merge_list ... merge two lists with overlapping names
 
 settings_get <-
   function(name) {
@@ -18,7 +18,7 @@ settings_get <-
 
 settings_set <-
   function(...) {
-    dalysettings <<- merge(dalysettings, resolve(...))
+    dalysettings <<- merge(resolve(...))
   }
 
 resolve <- function(...) {
