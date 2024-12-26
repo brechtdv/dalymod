@@ -7,5 +7,6 @@ Authors@R: person("Brecht", "Devleesschauwer", role = c("aut", "cre"),
 Author: Brecht Devleesschauwer [aut, cre]
 Maintainer: Brecht Devleesschauwer <brechtdv@gmail.com>
 Description: A flexible framework for calculating Disability-Adjusted Life Years.
+Imports: readxl
 Depends: R (>= 4.3.0)
 License: GPL-3
