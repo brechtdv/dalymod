@@ -11,11 +11,6 @@
 ###-----| merge ..........
 ###-------| merge_list ...
 
-settings <-
-  list(
-    get = settings_get,
-    set = settings_set)
-
 settings_get <-
   function(name) {
     dalysettings[name]
@@ -44,3 +39,8 @@ merge_list <-
     x[names(y)] <- y
     x
   }
+
+settings <-
+  list(
+    get = settings_get,
+    set = settings_set)
