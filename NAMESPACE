@@ -1,4 +1,7 @@
 export(dalymod)
 export(dalycalc)
+export(dalycalc_aggregate_nodes)
+export(dalycalc_aggregate_agesex)
+export(dalycalc_summary)
 export(settings)
 import(readxl)
