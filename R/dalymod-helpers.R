@@ -248,7 +248,7 @@ function(n_samples, file, transformation, denominator) {
     switch(
       transformation,
       log = exp(sim_samp))
-  sim_samp <- sim_samp / denominator
+  sim_samp <- sim_samp / as.numeric(denominator)
   sim_samp[is.na(sim_samp)] <- 0  # manually set back to 0
   sim_list <- apply(sim_samp, 1, c, simplify = FALSE)
   sim_out <- sim[, c("COUNTRY", "YEAR")]
