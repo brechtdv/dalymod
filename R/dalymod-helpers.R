@@ -595,21 +595,28 @@ get_tree <-
 
 dalymod <-
   function(file, n_samples, verbose = TRUE) {
+    ## set cli 'cli.default_handler' option
+    if (verbose) {
+      options(cli.default_handler = NULL)
+    } else {
+      options(cli.default_handler = function(...) { })
+    }
+    
     ## import dalymod excel
+    cli_progress_step("Importing file {.file {file}}", spinner = TRUE)
     dalymod <- import_dalymod(file)
-    if (verbose) message("File imported.")
-    
+
     ## pre-sample nodes
+    cli_progress_step("Pre-sampling nodes", spinner = TRUE)
     dalymod <- pre_sample_dalymod(dalymod, n_samples)
-    if (verbose) message("Nodes pre-sampled.")
-    
+
     ## normalize splits
+    cli_progress_step("Normalizing samples", spinner = TRUE)
     dalymod <- normalize_splits(dalymod)
-    if (verbose) message("Samples normalized.")
-    
+
     ## multiply nodes to get incidence per terminal node
+    cli_progress_step("Muliplying samples across nodes", spinner = TRUE)
     dalymod <- multiply_dalymod(dalymod)
-    if (verbose) message("Samples multiplied across nodes.")
     
     ## return updated dalymod
     return(dalymod)
