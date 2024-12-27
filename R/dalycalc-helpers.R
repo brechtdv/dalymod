@@ -106,7 +106,8 @@ dalycalc_node <-
     }
     
     ## merge incidence and population
-    node_inc <- base::merge(node_inc, pop_country, by.x = "COUNTRY", by.y = "ISO3")
+    node_inc <-
+      base::merge(node_inc, pop_country, by.x = "COUNTRY", by.y = "ISO3")
     
     ## multiply inc with pop
     node_inc$INC_NR <-
@@ -242,7 +243,7 @@ get_rle <-
 
 list_sum <-
   function(x) {
-    rowSums(dplyr::bind_cols(x))
+    rowSums(suppressMessages(dplyr::bind_cols(x)))
   }
 
 dalycalc_aggregate_nodes <-
@@ -284,6 +285,7 @@ dalycalc_aggregate_agesex <-
     names(dalycalc_agg) <- names(.dalycalc)
       
     for (i in seq_along(dalycalc_agg)) {
+      print(i)
       dalycalc_agg[[i]] <- vector("list", length(agesex_names))
       names(dalycalc_agg[[i]]) <- agesex_names
       for (j in seq_along(agesex_names)) { # age-sex
@@ -305,7 +307,10 @@ dalycalc_aggregate_agesex <-
     return(dalycalc_agg)
   }
 
-#.dalycalc_age <- .dalycalc_country_age
+## aggregate results into regional groupings
+dalycalc_aggregate_country <-
+  function(.dalycalc, country) {
+  }
 
 ## get samples in long format
 dalycalc_samples <-
@@ -314,18 +319,19 @@ dalycalc_samples <-
   }
 
 ## this should work on .dalycalc_country and .dalycalc_country_age
+## TO DO: add rate (MEASURE vs METRIC)
 dalycalc_summary <-
-  function(.dalycalc_agg, pars = c("INC_NR", "YLD_NR", "YLL_NR'")) {
+  function(.dalycalc_agg, pars = c("INC_NR", "YLD_NR", "YLL_NR")) {
     names(pars) <- pars
     out_lst <- lapply(pars, dalycalc_summary_par, .dalycalc_agg = .dalycalc_agg)
-    dplyr::bind_rows(out_lst, .id = "MEASURE")
+    out_df <- dplyr::bind_rows(out_lst, .id = "MEASURE")
     return(out_df)
   }
     
 dalycalc_summary_par <-
   function(.dalycalc_agg, par) {
     out_lst <- lapply(.dalycalc_agg, dalycalc_summary_par_age, par)
-    dplyr::bind_rows(out_lst, .id = "COUNTRY")
+    out_df <- dplyr::bind_rows(out_lst, .id = "COUNTRY")
     return(out_df)
   }
 
@@ -333,17 +339,12 @@ dalycalc_summary_par_age <-
   function(.dalycalc_agg_age, par) {
     out <-
     data.frame(
-      AGE = sapply(.dalycalc_agg_age[[1]], function(x) x$AGE),
-      SEX = sapply(.dalycalc_agg_age[[1]], function(x) x$SEX),
-      t(sapply(.dalycalc_agg_age[[1]], function(x) bd::mean_ci(x[[par]]))))
+      AGE = sapply(.dalycalc_agg_age, function(x) x$AGE),
+      SEX = sapply(.dalycalc_agg_age, function(x) x$SEX),
+      t(sapply(.dalycalc_agg_age, function(x) bd::mean_ci(x[[par]]))))
     names(out) <- c("AGE", "SEX", "VAL_MEAN", "VAL_LWR", "VAL_UPR")
     return(out)
   }
-
-#dalycalc_summary(.dalycalc_country_age)
-#dalycalc_summary(.dalycalc_country_age)
-## does not work because 'AGE' and 'SEX' not found
-
 
 # dalycalc > per outcome, 5y age group
 # COUNTRY/YEAR/AGE/SEX/POP/INC_RT/DUR/DSW/YLD_RT/INC_NR/YLD_NR
