@@ -233,7 +233,7 @@ function (a, m, b, k = 4, method = c("classic", "vose")) {
 ## samplers ----------------------------------------------------------------#
 
 get_samples <-
-function(n_samples, file) {
+function(n_samples, file, transformation, denominator) {
   ## import file
   f <- paste0("../ESTIMATES/", file)
   if (!file.exists(f))
@@ -243,6 +243,13 @@ function(n_samples, file) {
   ## compile output containing country/year/samples
   sim_samp <-
     sim$SIM[, sample(seq(ncol(sim$SIM)), n_samples, replace = TRUE), drop = F]
+  sim_samp[sim_samp == 0] <- NA  # manually set to NA to maintain zero's
+  sim_samp <-
+    switch(
+      transformation,
+      log = exp(sim_samp))
+  sim_samp <- sim_samp / denominator
+  sim_samp[is.na(sim_samp)] <- 0  # manually set back to 0
   sim_list <- apply(sim_samp, 1, c, simplify = FALSE)
   sim_out <- sim[, c("COUNTRY", "YEAR")]
   sim_out$SAMPLES <- sim_list
@@ -306,7 +313,11 @@ pre_sample_input <-
 
     ## take samples from file
     if (input$dist == "Simulations")
-      return(get_samples(n_samples, input$data$`File name`))
+      return(get_samples(
+        n_samples,
+        input$data$`File name`,
+        input$data$Transformation,
+        input$data$Denominator))
 
     ## generate samples
     samples <-
@@ -583,19 +594,23 @@ get_tree <-
 ## main wrapper functions --------------------------------------------------#
 
 dalymod <-
-  function(file, n_samples) {
+  function(file, n_samples, verbose = TRUE) {
     ## import dalymod excel
     dalymod <- import_dalymod(file)
-
+    if (verbose) message("File imported.")
+    
     ## pre-sample nodes
     dalymod <- pre_sample_dalymod(dalymod, n_samples)
-
+    if (verbose) message("Nodes pre-sampled.")
+    
     ## normalize splits
     dalymod <- normalize_splits(dalymod)
-
+    if (verbose) message("Samples normalized.")
+    
     ## multiply nodes to get incidence per terminal node
     dalymod <- multiply_dalymod(dalymod)
-
+    if (verbose) message("Samples multiplied across nodes.")
+    
     ## return updated dalymod
     return(dalymod)
   }
