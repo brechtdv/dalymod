@@ -275,21 +275,56 @@ dalycalc_aggregate_nodes <-
   }
 
 dalycalc_aggregate_agesex <-
-  function(.dalycalc, agesex) {
-    agesex_names <- names(agesex)
-    age_names <- sapply(.dalycalc[[1]], function(x) x$AGE)
-    sex_names <- sapply(.dalycalc[[1]], function(x) x$SEX)
-    agesex_all <- data.frame(AGE = age_names, SEX = sex_names)
+  function(.dalycalc, age = NULL, sex = NULL) {
+    ## get age and sex names from old definition
+    age_old <- sapply(.dalycalc[[1]], function(x) x$AGE)
+    sex_old <- sapply(.dalycalc[[1]], function(x) x$SEX)
+    agesex_old <- data.frame(AGE = age_old, SEX = sex_old)
     
+    ## if age or sex not specified, reuse old definition
+    if (is.null(age)) {
+      age <- as.list(unique(age_old))
+      names(age) <- unique(age_old)
+    }
+    
+    if (is.null(sex)) {
+      sex <- as.list(unique(sex_old))
+      names(sex) <- unique(sex_old)
+    }
+
+    ## compile new age and sex definitions 
+    age_df <-
+      data.frame(
+        AGE = unlist(age),
+        AGE_NEW = rep(names(age), times = sapply(age, length)))
+    sex_df <-
+      data.frame(
+        SEX = unlist(sex),
+        SEX_NEW = rep(names(sex), times = sapply(sex, length)))
+    agesex_new <-
+      expand.grid(AGE = names(age), SEX = names(sex))
+    
+    ## merge old and new definitions
+    agesex_oldnew <-
+      merge(merge(agesex_old, age_df), sex_df)
+    
+    ## prepare object to hold results
     dalycalc_agg <- vector("list", length(.dalycalc))
     names(dalycalc_agg) <- names(.dalycalc)
       
+    ## add up numbers across country and new age-sex group
     for (i in seq_along(dalycalc_agg)) {
-      dalycalc_agg[[i]] <- vector("list", length(agesex_names))
-      names(dalycalc_agg[[i]]) <- agesex_names
-      for (j in seq_along(agesex_names)) { # age-sex
+      dalycalc_agg[[i]] <- vector("list", nrow(agesex_new))
+      for (j in seq(nrow(agesex_new))) { # age-sex
+        # identify rows in old age-sex definition
         agesex_id <-
-          which(duplicated(rbind(agesex_all, agesex[[j]]), fromLast = TRUE))
+          with(agesex_oldnew,
+               which(AGE_NEW == agesex_new[j, "AGE"] &
+                     SEX_NEW == agesex_new[j, "SEX"]))
+        
+        # add up numbers
+        dalycalc_agg[[i]][[j]]$AGE <- agesex_new[j, "AGE"]
+        dalycalc_agg[[i]][[j]]$SEX <- agesex_new[j, "SEX"]
         dalycalc_agg[[i]][[j]]$POP <-
           list_sum(lapply(.dalycalc[[i]][agesex_id], function(x) x$POP))
         dalycalc_agg[[i]][[j]]$INC_NR <-
