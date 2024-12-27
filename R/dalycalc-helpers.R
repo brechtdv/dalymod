@@ -243,7 +243,7 @@ get_rle <-
 
 list_sum <-
   function(x) {
-    rowSums(suppressMessages(dplyr::bind_cols(x)))
+    rowSums(data.frame(x))
   }
 
 dalycalc_aggregate_nodes <-
@@ -285,7 +285,6 @@ dalycalc_aggregate_agesex <-
     names(dalycalc_agg) <- names(.dalycalc)
       
     for (i in seq_along(dalycalc_agg)) {
-      print(i)
       dalycalc_agg[[i]] <- vector("list", length(agesex_names))
       names(dalycalc_agg[[i]]) <- agesex_names
       for (j in seq_along(agesex_names)) { # age-sex
