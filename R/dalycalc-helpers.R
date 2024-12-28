@@ -89,8 +89,11 @@ dalycalc <-
     cli_progress_step("Calculating DALYs across nodes", spinner = TRUE)
     .dalycalc <-
       lapply(.dalymod$nodes[nodes],
-             dalycalc_node, year, pop_country, pop, rle, lle)
+             dalycalc_node, year, pop_country, pop, rle)
 
+    ## add S3 class
+    class(.dalycalc) <- "dalycalc"
+      
     ## return dalycalc list
     return(.dalycalc)
   }
@@ -264,6 +267,11 @@ list_sum <-
 
 dalycalc_aggregate_nodes <-
   function(.dalycalc) {
+    ## check class
+    if (!("dalycalc" %in% class(.dalycalc)))
+      stop("Input must be of class ", sQuote("dalycalc"))
+    
+    ## aggregate nodes
     dalycalc_agg <- vector("list", length(.dalycalc[[1]]))
     names(dalycalc_agg) <- names(.dalycalc[[1]])
     age_names <- sapply(.dalycalc[[1]][[1]], function(x) x$AGE)
@@ -289,11 +297,19 @@ dalycalc_aggregate_nodes <-
       }
     }
     
+    ## add S3 class
+    class(dalycalc_agg) <- "dalycalc_agg"
+    
+    ## return output
     return(dalycalc_agg)
   }
 
 dalycalc_aggregate_agesex <-
   function(.dalycalc, age = NULL, sex = NULL) {
+    ## check class
+    if (!("dalycalc_agg" %in% class(.dalycalc)))
+      stop("Input must be of class ", sQuote("dalycalc_agg"))
+    
     ## get age and sex names from old definition
     age_old <- sapply(.dalycalc[[1]], function(x) x$AGE)
     sex_old <- sapply(.dalycalc[[1]], function(x) x$SEX)
@@ -359,13 +375,21 @@ dalycalc_aggregate_agesex <-
           list_sum(lapply(.dalycalc[[i]][agesex_id], function(x) x$DALY_NR))
       }
     }
-
+    
+    ## add S3 class
+    class(dalycalc_agg) <- "dalycalc_agg"
+    
+    ## return output
     return(dalycalc_agg)
   }
 
 ## aggregate results into regional groupings
 dalycalc_aggregate_country <-
   function(.dalycalc, country) {
+    ## check class
+    if (!("dalycalc_agg" %in% class(.dalycalc)))
+      stop("Input must be of class ", sQuote("dalycalc_agg"))
+    
     ## prepare object to hold results
     dalycalc_agg <- vector("list", length(country))
     names(dalycalc_agg) <- names(country)
@@ -395,6 +419,10 @@ dalycalc_aggregate_country <-
       }
     }
     
+    ## add S3 class
+    class(dalycalc_agg) <- "dalycalc_agg"
+    
+    ## return output
     return(dalycalc_agg)
   }
 
@@ -409,6 +437,11 @@ dalycalc_summary <-
   function(
     .dalycalc_agg,
     pars = c("INC_NR", "MRT_NR", "YLD_NR", "YLL_NR", "DALY_NR")) {
+    ## check class
+    if (!("dalycalc_agg" %in% class(.dalycalc_agg)))
+      stop("Input must be of class ", sQuote("dalycalc_agg"))
+    
+    ## calculate summaries
     names(pars) <- pars
     out_lst <- lapply(pars, dalycalc_summary_par, .dalycalc_agg = .dalycalc_agg)
     out_df <- dplyr::bind_rows(out_lst, .id = "MEASURE")
