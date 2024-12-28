@@ -70,8 +70,9 @@ split_agesex_all <-
 ## .. 'year' is single numerical value
 ## .. 'pop' is dataframe with columns 'POP', 'ISO3', 'AGE', 'SEX'
 ## .. 'rle' is dataframe with columns 'AGE', 'SEX', 'RLE'
+## .. 'lle' is dataframe with columns 'AGE', 'SEX', 'LLE'
 dalycalc <-
-  function(.dalymod, year, pop, rle, verbose = TRUE) {
+  function(.dalymod, year, pop, rle, lle = NULL, verbose = TRUE) {
     ## set cli 'cli.default_handler' option
     if (verbose) {
       options(cli.default_handler = NULL)
@@ -88,7 +89,7 @@ dalycalc <-
     cli_progress_step("Calculating DALYs across nodes", spinner = TRUE)
     .dalycalc <-
       lapply(.dalymod$nodes[nodes],
-             dalycalc_node, year, pop_country, pop, rle)
+             dalycalc_node, year, pop_country, pop, rle, lle)
 
     ## return dalycalc list
     return(.dalycalc)
@@ -209,6 +210,9 @@ dalycalc_node <-
       } else {
         node_dsw <- subset(node_dsw, YEAR == year)
       }
+      
+      # build in lifelong duration ~country/agesex
+      # if/else the below? because now dur same for each age-sex
       
       for (i in seq_along(dalycalc_all)) { # country
         for (j in seq_along(dalycalc_all[[i]])) { # age-sex
@@ -428,6 +432,44 @@ dalycalc_summary_par_age <-
       t(sapply(.dalycalc_agg_age, function(x) bd::mean_ci(x[[par]]))))
     names(out) <- c("AGE", "SEX", "POP", "VAL_MEAN", "VAL_LWR", "VAL_UPR")
     return(out)
+  }
+
+dalycalc_add <-
+  function(...) {
+    x <- list(...)
+    out <- x[[1]]
+    for (i in seq_along(x)[-1]) {  # objects
+      for (j in seq_along(x[[i]])) {  # countries
+        for (k in seq_along(x[[i]][[j]])) {  # age-sex
+          out[[j]][[k]]$POP <- out[[j]][[k]]$POP + x[[i]][[j]][[k]]$POP
+          out[[j]][[k]]$INC_NR <- out[[j]][[k]]$INC_NR + x[[i]][[j]][[k]]$INC_NR
+          out[[j]][[k]]$MRT_NR <- out[[j]][[k]]$MRT_NR + x[[i]][[j]][[k]]$MRT_NR
+          out[[j]][[k]]$YLD_NR <- out[[j]][[k]]$YLD_NR + x[[i]][[j]][[k]]$YLD_NR
+          out[[j]][[k]]$YLL_NR <- out[[j]][[k]]$YLL_NR + x[[i]][[j]][[k]]$YLL_NR
+          out[[j]][[k]]$DALY_NR <- out[[j]][[k]]$DALY_NR + x[[i]][[j]][[k]]$DALY_NR
+        }
+      }
+    }
+    return(out) 
+  }
+
+dalycalc_mult <-
+  function(.dalycalc, y) {
+    ## check length match
+    if (max(sapply(.dalycalc[[1]][[1]], length)) != length(y))
+      warning("Lengths of objects do not match.")
+    
+    ## multiply nodes
+    for (i in seq_along(.dalycalc)) {  # countries
+      for (j in seq_along(.dalycalc[[i]])) {  # age-sex
+        .dalycalc[[i]][[j]]$INC_NR <- .dalycalc[[i]][[j]]$INC_NR * y
+        .dalycalc[[i]][[j]]$MRT_NR <- .dalycalc[[i]][[j]]$MRT_NR * y
+        .dalycalc[[i]][[j]]$YLD_NR <- .dalycalc[[i]][[j]]$YLD_NR * y
+        .dalycalc[[i]][[j]]$YLL_NR <- .dalycalc[[i]][[j]]$YLL_NR * y
+        .dalycalc[[i]][[j]]$DALY_NR <- .dalycalc[[i]][[j]]$DALY_NR * y
+      }
+    }
+    return(.dalycalc) 
   }
 
 # dalycalc > per outcome, 5y age group
