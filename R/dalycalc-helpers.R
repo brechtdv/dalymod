@@ -71,17 +71,25 @@ split_agesex_all <-
 ## .. 'pop' is dataframe with columns 'POP', 'ISO3', 'AGE', 'SEX'
 ## .. 'rle' is dataframe with columns 'AGE', 'SEX', 'RLE'
 dalycalc <-
-  function(.dalymod, year, pop, rle) {
+  function(.dalymod, year, pop, rle, verbose = TRUE) {
+    ## set cli 'cli.default_handler' option
+    if (verbose) {
+      options(cli.default_handler = NULL)
+    } else {
+      options(cli.default_handler = function(...) { })
+    }
+    
     ## aggregate pop by country
     pop_country <- aggregate(POP ~ ISO3, pop, sum)
     
     ## calculate DALYs across YLD/YLL nodes
     ## .. .dalycalc is list of node>country>agesex
     nodes <- subset(.dalymod$dismod, CONTRIBUTION != "NA")$NODE
+    cli_progress_step("Calculating DALYs across nodes", spinner = TRUE)
     .dalycalc <-
       lapply(.dalymod$nodes[nodes],
-        dalycalc_node, year, pop_country, pop, rle)
-    
+             dalycalc_node, year, pop_country, pop, rle)
+
     ## return dalycalc list
     return(.dalycalc)
   }
@@ -211,8 +219,8 @@ dalycalc_node <-
         }
       }
     }
-
-    ## calculate YLL
+    
+    ## calculate YLL & rename INC_NR to MRT_NR
     if (node$set$contribution == "YLL") {
       for (i in seq_along(dalycalc_all)) { # country
         for (j in seq_along(dalycalc_all[[i]])){ # age-sex
@@ -222,6 +230,9 @@ dalycalc_node <-
                 dalycalc_all[[i]][[j]]$AGE,
                 dalycalc_all[[i]][[j]]$SEX,
                 rle)
+          dalycalc_all[[i]][[j]]$MRT_NR <-
+            dalycalc_all[[i]][[j]]$INC_NR
+          dalycalc_all[[i]][[j]]$INC_NR <- NULL
         }
       }
     }
@@ -243,7 +254,8 @@ get_rle <-
 
 list_sum <-
   function(x) {
-    rowSums(data.frame(x))
+    # rowSums(data.frame(x))
+    rowSums(do.call("cbind", x))
   }
 
 dalycalc_aggregate_nodes <-
@@ -262,6 +274,8 @@ dalycalc_aggregate_nodes <-
         dalycalc_agg[[i]][[j]]$POP <- pop[j]
         dalycalc_agg[[i]][[j]]$INC_NR <-
           list_sum(lapply(.dalycalc, function(x) x[[i]][[j]]$INC_NR))
+        dalycalc_agg[[i]][[j]]$MRT_NR <-
+          list_sum(lapply(.dalycalc, function(x) x[[i]][[j]]$MRT_NR))
         dalycalc_agg[[i]][[j]]$YLD_NR <-
           list_sum(lapply(.dalycalc, function(x) x[[i]][[j]]$YLD_NR))
         dalycalc_agg[[i]][[j]]$YLL_NR <-
@@ -331,6 +345,8 @@ dalycalc_aggregate_agesex <-
           list_sum(lapply(.dalycalc[[i]][agesex_id], function(x) x$POP))
         dalycalc_agg[[i]][[j]]$INC_NR <-
           list_sum(lapply(.dalycalc[[i]][agesex_id], function(x) x$INC_NR))
+        dalycalc_agg[[i]][[j]]$MRT_NR <-
+          list_sum(lapply(.dalycalc[[i]][agesex_id], function(x) x$MRT_NR))
         dalycalc_agg[[i]][[j]]$YLD_NR <-
           list_sum(lapply(.dalycalc[[i]][agesex_id], function(x) x$YLD_NR))
         dalycalc_agg[[i]][[j]]$YLL_NR <-
@@ -364,6 +380,8 @@ dalycalc_aggregate_country <-
           list_sum(lapply(.dalycalc[country[[i]]], function(x) x[[j]]$POP))
         dalycalc_agg[[i]][[j]]$INC_NR <-
           list_sum(lapply(.dalycalc[country[[i]]], function(x) x[[j]]$INC_NR))
+        dalycalc_agg[[i]][[j]]$MRT_NR <-
+          list_sum(lapply(.dalycalc[country[[i]]], function(x) x[[j]]$MRT_NR))
         dalycalc_agg[[i]][[j]]$YLD_NR <-
           list_sum(lapply(.dalycalc[country[[i]]], function(x) x[[j]]$YLD_NR))
         dalycalc_agg[[i]][[j]]$YLL_NR <-
@@ -384,7 +402,9 @@ dalycalc_samples <-
 
 ## this should work on .dalycalc_country and .dalycalc_country_age
 dalycalc_summary <-
-  function(.dalycalc_agg, pars = c("INC_NR", "YLD_NR", "YLL_NR")) {
+  function(
+    .dalycalc_agg,
+    pars = c("INC_NR", "MRT_NR", "YLD_NR", "YLL_NR", "DALY_NR")) {
     names(pars) <- pars
     out_lst <- lapply(pars, dalycalc_summary_par, .dalycalc_agg = .dalycalc_agg)
     out_df <- dplyr::bind_rows(out_lst, .id = "MEASURE")
@@ -421,5 +441,4 @@ dalycalc_summary_par_age <-
 # mean/UI
 # COUNTRY/YEAR/AGE/SEX/METRIC/MEASURE/VAL_MEAN/VAL_LWR/VAL_UPR
 # + regional groupings
-
 
