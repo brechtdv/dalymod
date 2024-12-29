@@ -321,7 +321,7 @@ pre_sample_input <-
         n_samples,
         input$data$`File name`,
         input$data$Transformation,
-        input$data$Denominator))
+        input$dnmn))
 
     ## generate samples
     samples <-
