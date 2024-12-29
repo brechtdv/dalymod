@@ -15,6 +15,9 @@ split_age_string <-
       if (age == "<1") {
         c(0, 1)
         
+      } else if (age == "1-4") {
+        c(1, 5)
+        
       } else if (grepl("<", age)) {
         c(0, 1, seq(5, as.numeric(gsub("<", "", age)), 5))
         
@@ -190,14 +193,14 @@ dalycalc_node <-
     if (node$set$contribution == "YLD") {
       
       ## expand countries if needed
-      if (node$dur$samp$COUNTRY == "ALL") {
+      if (all(node$dur$samp$COUNTRY == "ALL")) {
         node_dur <- cbind(pop_country$ISO3, node$dur$samp)
         node_dur$COUNTRY <- NULL
         names(node_dur)[names(node_dur) == "pop_country$ISO3"] <- "COUNTRY"
       } else {
         node_dur <- node$dur$samp
       }
-      if (node$dsw$samp$COUNTRY == "ALL") {
+      if (all(node$dsw$samp$COUNTRY == "ALL")) {
         node_dsw <- cbind(pop_country$ISO3, node$dsw$samp)
         node_dsw$COUNTRY <- NULL
         names(node_dsw)[names(node_dsw) == "pop_country$ISO3"] <- "COUNTRY"
