@@ -458,7 +458,7 @@ pre_sample_sex <-
       sex_names <- names(input$data)[3:4]
       
       ## if sum to one, assume fixed
-      if (iSTRUE(all.equal(
+      if (isTRUE(all.equal(
             sum(as.numeric(as.matrix(input$data[, 3:4]))),
             nrow(input$data)))) {
         samples <-
