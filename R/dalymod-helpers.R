@@ -400,9 +400,9 @@ pre_sample_age <-
     age_names <- age_names[age_names != "COMMENT"]
     
     ## if sum to one, assume fixed
-    if (all.equal(
+    if (isTRUE(all.equal(
           sum(as.numeric(as.matrix(input$data[, age_names]))),
-          nrow(input$data))) {
+          nrow(input$data)))) {
       samples <-
         apply(input$data[, age_names], 1,
               function(x) sapply(as.numeric(x), rep, each = n_samples),
@@ -458,9 +458,9 @@ pre_sample_sex <-
       sex_names <- names(input$data)[3:4]
       
       ## if sum to one, assume fixed
-      if (all.equal(
+      if (iSTRUE(all.equal(
             sum(as.numeric(as.matrix(input$data[, 3:4]))),
-            nrow(input$data))) {
+            nrow(input$data)))) {
         samples <-
           apply(input$data[, 3:4], 1,
                 function(x) sapply(as.numeric(x), rep, each = n_samples),
