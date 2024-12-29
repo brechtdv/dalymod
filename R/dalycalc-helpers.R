@@ -2,12 +2,55 @@
 ### dalycalc helpers
 ###=========================================================================#
 
-library(dplyr)
-
 ###=========================================================================#
 ###== FUNCTIONS ============================================================#
+###-- split_agesex_all .............. main wrapper
+###---| split_agesex .............. main wrapper
+###-----| split_age_string .............. main wrapper
+###-----| split_sex_string .............. main wrapper
+###-- get_rle .............. main wrapper
+###-- list_sum .............. main wrapper
 ###-- dalycalc .............. main wrapper
-###-- dalycalc .............. main wrapper
+###---| dalycalc_node .............. main wrapper
+###-- dalycalc_aggregate_nodes .............. main wrapper
+###-- dalycalc_aggregate_agesex .............. main wrapper
+###-- dalycalc_aggregate_country .............. main wrapper
+###-- dalycalc_summary .............. main wrapper
+###---| dalycalc_summary_par .............. main wrapper
+###-----| dalycalc_summary_par_age .............. main wrapper
+###-- dalycalc_add .............. main wrapper
+###-- dalycalc_mult .............. main wrapper
+
+##--------------------------------------------------------------------------#
+## generic helpers ---------------------------------------------------------#
+
+split_agesex_all <-
+  function(agesex_agg_all, country, pop) {
+    agesex_all <- sapply(agesex_agg_all, split_agesex, country, pop)
+    agesex_all <- unlist(agesex_all, recursive = FALSE)
+    return(agesex_all)
+  }
+
+split_agesex <-
+  function(agesex_agg, country, pop) {
+    agesex_agg_pop <-
+      expand.grid(
+        AGE = split_age_string(agesex_agg$AGE),
+        SEX = split_sex_string(agesex_agg$SEX))
+    agesex_agg_pop <-
+      base::merge(agesex_agg_pop, subset(pop, ISO3 == country))
+    agesex_agg_pop$W <-
+      agesex_agg_pop$POP / sum(agesex_agg_pop$POP)
+    # replace NaN weight by zero
+    agesex_agg_pop$W[is.nan(agesex_agg_pop$W)] <- 0
+    agesex_agg_pop$INC_NR <-
+      lapply(agesex_agg_pop$W, function(x) x * agesex_agg$INC_NR)
+    
+    agesex_agg_pop$W <- NULL
+    agesex_agg_pop$ISO3 <- NULL
+    
+    apply(agesex_agg_pop, 1, as.list)
+  }
 
 split_age_string <-
   function(age) {
@@ -45,30 +88,15 @@ split_sex_string <-
     return(sex_full)
   }
 
-split_agesex <-
-  function(agesex_agg, country, pop) {
-    agesex_agg_pop <-
-      expand.grid(
-        AGE = split_age_string(agesex_agg$AGE),
-        SEX = split_sex_string(agesex_agg$SEX))
-    agesex_agg_pop <-
-      base::merge(agesex_agg_pop, subset(pop, ISO3 == country))
-    agesex_agg_pop$W <-
-      agesex_agg_pop$POP / sum(agesex_agg_pop$POP)
-    agesex_agg_pop$INC_NR <-
-      lapply(agesex_agg_pop$W, function(x) x * agesex_agg$INC_NR)
-    
-    agesex_agg_pop$W <- NULL
-    agesex_agg_pop$ISO3 <- NULL
-    
-    apply(agesex_agg_pop, 1, as.list)
+get_rle <-
+  function(age, sex, rle) {
+    subset(rle, AGE == age & SEX == sex)$RLE
   }
 
-split_agesex_all <-
-  function(agesex_agg_all, country, pop) {
-    agesex_all <- sapply(agesex_agg_all, split_agesex, country, pop)
-    agesex_all <- unlist(agesex_all, recursive = FALSE)
-    return(agesex_all)
+list_sum <-
+  function(x) {
+    # rowSums(data.frame(x))
+    rowSums(do.call("cbind", x))
   }
 
 ## main wrapper for DALY calculations
@@ -254,22 +282,10 @@ dalycalc_node <-
     return(dalycalc_all)
 }
 
-get_rle <-
-  function(age, sex, rle) {
-    subset(rle, AGE == age & SEX == sex)$RLE
-  }
-
 ## TO DO
 
 ## .. export INC contrib
-## .. calculate aggregates across countries
 ## .. export samples > dalycalc_samples
-
-list_sum <-
-  function(x) {
-    # rowSums(data.frame(x))
-    rowSums(do.call("cbind", x))
-  }
 
 dalycalc_aggregate_nodes <-
   function(.dalycalc) {
