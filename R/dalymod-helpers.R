@@ -81,6 +81,7 @@ import_node <-
     
     ## define row numbers
     row_type <- which(xl_node[[1]] == "TYPE")
+    row_den <- which(xl_node[[1]] == "DENOMINATOR")
     row_cnt <- which(xl_node[[1]] == "CONTRIBUTION")
     row_inc <- which(xl_node[[1]] == "INCIDENCE")
     row_val <- which(xl_node[[1]] == "VALUE")
@@ -95,12 +96,13 @@ import_node <-
     ## setup node settings
     dismod_node$set$contribution <- xl_node[row_cnt, 2]
     dismod_node$set$incidence <- xl_node[row_inc, 2]
-    
+
     ## setup node value
     dismod_node$val <- list()
     dismod_node$val$type <- xl_node[row_type, 2]  
     dismod_node$val$dist <- xl_node[row_val, 4]  
     dismod_node$val$data <- xl_node[(row_val+2):(row_dur-2), 2:6]
+    dismod_node$val$dnmn <- as.numeric(xl_node[row_den, 2])
     colnames(dismod_node$val$data) <- xl_node[row_val+1, 2:6]
     rownames(dismod_node$val$data) <- NULL
     
@@ -108,7 +110,8 @@ import_node <-
     dismod_node$dur <- list()
     dismod_node$dur$type <- "INC"
     dismod_node$dur$dist <- xl_node[row_dur, 4]  
-    dismod_node$dur$data <- xl_node[(row_dur+2):(row_dsw-2), 2:6]  
+    dismod_node$dur$data <- xl_node[(row_dur+2):(row_dsw-2), 2:6]
+    dismod_node$dur$dnmn <- 1
     colnames(dismod_node$dur$data) <- xl_node[row_dur+1, 2:6]
     rownames(dismod_node$dur$data) <- NULL
     
@@ -116,7 +119,8 @@ import_node <-
     dismod_node$dsw <- list()
     dismod_node$dsw$type <- "PROB"
     dismod_node$dsw$dist <- xl_node[row_dsw, 4]  
-    dismod_node$dsw$data <- xl_node[(row_dsw+2):(row_age-2), 2:6]  
+    dismod_node$dsw$data <- xl_node[(row_dsw+2):(row_age-2), 2:6]
+    dismod_node$dsw$dnmn <- 1
     colnames(dismod_node$dsw$data) <- xl_node[row_dsw+1, 2:6]
     rownames(dismod_node$dsw$data) <- NULL
     
@@ -364,6 +368,15 @@ pre_sample_input <-
             as.numeric(input$data$Max),
             n = n_samples))
     
+    ## replace any 'NaN' by 0
+    if (any(is.nan(samples))) {
+      samples[is.nan(samples)] <- 0
+      warning("NaN values replaced by 0")
+    }
+    
+    ## divide by denominator
+    samples <- samples / input$dnmn
+    
     ## integrate samples in dataframe
     samples_list <- do.call("c", apply(samples, 2, list))
     input_data_sim <- input$data[, c("COUNTRY", "YEAR")]
@@ -505,10 +518,10 @@ pre_sample_node <-
 ## pre-sample dalymod list -------------------------------------------------#
 
 pre_sample_dalymod <-
-  function(dalymod, n_samples) {
-    dalymod$nodes <-
-      lapply(dalymod$nodes, pre_sample_node, n_samples)
-    return(dalymod)
+  function(.dalymod, n_samples) {
+    .dalymod$nodes <-
+      lapply(.dalymod$nodes, pre_sample_node, n_samples)
+    return(.dalymod)
   }
 
 ##--------------------------------------------------------------------------#
