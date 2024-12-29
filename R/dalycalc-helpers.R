@@ -362,7 +362,7 @@ dalycalc_aggregate_agesex <-
     
     ## merge old and new definitions
     agesex_oldnew <-
-      merge(merge(agesex_old, age_df), sex_df)
+      base::merge(base::merge(agesex_old, age_df), sex_df)
     
     ## prepare object to hold results
     dalycalc_agg <- vector("list", length(.dalycalc))
