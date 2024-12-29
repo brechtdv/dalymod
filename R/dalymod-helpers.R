@@ -323,6 +323,8 @@ pre_sample_input <-
     samples <-
       switch(
         input$dist,
+        # "Lifelong" =
+        #   "lifelong",
         "Gamma" =
           mapply(
             sim_gamma,
@@ -386,7 +388,8 @@ pre_sample_age <-
     
     ## if sum to one, assume fixed
     if (all.equal(
-          sum(as.numeric(input$data[, age_names])), nrow(input$data))) {
+          sum(as.numeric(as.matrix(input$data[, age_names]))),
+          nrow(input$data))) {
       samples <-
         apply(input$data[, age_names], 1,
               function(x) sapply(as.numeric(x), rep, each = n_samples),
@@ -443,7 +446,8 @@ pre_sample_sex <-
       
       ## if sum to one, assume fixed
       if (all.equal(
-            sum(as.numeric(input$data[, 3:4])), nrow(input$data))) {
+            sum(as.numeric(as.matrix(input$data[, 3:4]))),
+            nrow(input$data))) {
         samples <-
           apply(input$data[, 3:4], 1,
                 function(x) sapply(as.numeric(x), rep, each = n_samples),
@@ -604,20 +608,20 @@ dalymod <-
     
     ## import dalymod excel
     cli_progress_step("Importing file {.file {file}}", spinner = TRUE)
-    dalymod <- import_dalymod(file)
+    .dalymod <- import_dalymod(file)
 
     ## pre-sample nodes
     cli_progress_step("Pre-sampling nodes", spinner = TRUE)
-    dalymod <- pre_sample_dalymod(dalymod, n_samples)
+    .dalymod <- pre_sample_dalymod(.dalymod, n_samples)
 
     ## normalize splits
     cli_progress_step("Normalizing samples", spinner = TRUE)
-    dalymod <- normalize_splits(dalymod)
+    .dalymod <- normalize_splits(.dalymod)
 
     ## multiply nodes to get incidence per terminal node
     cli_progress_step("Muliplying samples across nodes", spinner = TRUE)
-    dalymod <- multiply_dalymod(dalymod)
+    .dalymod <- multiply_dalymod(.dalymod)
     
     ## return updated dalymod
-    return(dalymod)
+    return(.dalymod)
   }

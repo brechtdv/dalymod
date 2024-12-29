@@ -12,8 +12,11 @@ library(dplyr)
 split_age_string <-
   function(age) {
     age_full <-
-      if (grepl("<", age)) {
-        seq(0, as.numeric(gsub("<", "", age)), 5)
+      if (age == "<1") {
+        c(0, 1)
+        
+      } else if (grepl("<", age)) {
+        c(0, 1, seq(5, as.numeric(gsub("<", "", age)), 5))
         
       } else if (grepl("\\+", age)) {
         c(seq(as.numeric(gsub("\\+", "", age)), 85, 5), Inf)
@@ -34,7 +37,7 @@ split_sex_string <-
         c("Male", "Female")
         
       } else {
-        sex_full
+        sex
       }
     return(sex_full)
   }
@@ -129,7 +132,7 @@ dalycalc_node <-
     ## setup age split
     age_split <- node$age$samp
     age_split$YEAR <- NULL
-    if (age_split$COUNTRY == "ALL") {
+    if (all(age_split$COUNTRY == "ALL")) {
       age_split <- cbind(pop_country$ISO3, age_split)
       age_split$COUNTRY <- NULL
       names(age_split)[names(age_split) == "pop_country$ISO3"] <- "COUNTRY"
@@ -141,7 +144,7 @@ dalycalc_node <-
     ## setup sex split
     sex_split <- node$sex$samp
     sex_split$YEAR <- NULL
-    if (sex_split$COUNTRY == "ALL") {
+    if (all(sex_split$COUNTRY == "ALL")) {
       sex_split <- cbind(pop_country$ISO3, sex_split)
       sex_split$COUNTRY <- NULL
       names(sex_split)[names(sex_split) == "pop_country$ISO3"] <- "COUNTRY"
