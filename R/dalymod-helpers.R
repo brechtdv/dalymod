@@ -236,6 +236,16 @@ function (a, m, b, k = 4, method = c("classic", "vose")) {
 ##--------------------------------------------------------------------------#
 ## samplers ----------------------------------------------------------------#
 
+## make several functions?
+## get_samples_sci
+## get_samples_who
+## get_samples_gbd
+
+expit <-
+  function(x) {
+    exp(x) / (1 + exp(x))
+  }
+
 get_samples <-
 function(n_samples, file, transformation, denominator) {
   ## import file
@@ -244,19 +254,50 @@ function(n_samples, file, transformation, denominator) {
     stop("File ", sQuote(file), " not found in 'ESTIMATES' folder.")
   sim <- readRDS(f)
 
+  ## add year 'ALL' if year is missing
+  if (is.null(sim$YEAR)) sim$YEAR <- "ALL"
+  
   ## compile output containing country/year/samples
-  sim_samp <-
+  sim$SAMPLES <-
     sim$SIM[, sample(seq(ncol(sim$SIM)), n_samples, replace = TRUE), drop = F]
-  sim_samp[sim_samp == 0] <- NA  # manually set to NA to maintain zero's
-  sim_samp <-
+  sim$SAMPLES[sim$SAMPLES == 0] <- NA  # manually set to NA to maintain zero's
+  sim$SAMPLES <-
     switch(
       transformation,
-      log = exp(sim_samp))
-  sim_samp <- sim_samp / as.numeric(denominator)
-  sim_samp[is.na(sim_samp)] <- 0  # manually set back to 0
-  sim_list <- apply(sim_samp, 1, c, simplify = FALSE)
-  sim_out <- sim[, c("COUNTRY", "YEAR")]
-  sim_out$SAMPLES <- sim_list
+      log = exp(sim$SAMPLES),
+      logit = expit(sim$SAMPLES))
+  sim$SAMPLES <- sim$SAMPLES / as.numeric(denominator)
+  sim$SAMPLES[is.na(sim$SAMPLES)] <- 0  # manually set back to 0
+  sim$SAMPLES <- apply(sim$SAMPLES, 1, c, simplify = FALSE)
+  
+  ## expand output as needed
+  sim_out <-
+    expand.grid(
+      ISO3 = FERG2:::countries$ISO3,
+      YEAR = unique(sim$YEAR))
+  sim_out <-
+    merge(sim_out, FERG2:::countries[, c("ISO3", "REG2", "SUB2")])
+  names(sim_out)[names(sim_out) == "ISO3"] <- "COUNTRY"
+  
+  ## integrate samples
+  if (!is.null(sim$COUNTRY)) {
+    sim_out <-
+      merge(sim_out, sim[, c("COUNTRY", "YEAR", "SAMPLES")])
+    
+  } else if (!is.null(sim$SUB2)) {
+    sim_out <-
+      merge(sim_out, sim[, c("SUB2", "YEAR", "SAMPLES")])
+    
+  } else if (!is.null(sim$REG2)) {
+    sim_out <-
+      merge(sim_out, sim[, c("REG2", "YEAR", "SAMPLES")])
+    
+  } else {
+    sim_out <-
+      merge(sim_out, sim[, c("YEAR", "SAMPLES")])
+  }
+
+  sim_out <- sim_out[, c("COUNTRY", "YEAR", "SAMPLES")]
 
   ## return output
   return(sim_out)
@@ -568,30 +609,30 @@ normalize_splits <-
 ## multiply values across tree ---------------------------------------------#
 
 multiply_dalymod <-
-  function(dalymod) {
+  function(.dalymod) {
     ## extract all nodes
-    nodes <- dalymod$dismod$NODE
+    nodes <- .dalymod$dismod$NODE
     
     ## per node, multiply across tree
     for (i in seq_along(nodes)) {
-      dalymod$nodes[[nodes[i]]]$inc <- multiply_nodes(dalymod, nodes[i])
+      .dalymod$nodes[[nodes[i]]]$inc <- multiply_nodes(.dalymod, nodes[i])
     }
     
     ## return dalymod
-    return(dalymod)
+    return(.dalymod)
   }
 
 multiply_nodes <-
-  function(dalymod, node) {
+  function(.dalymod, node) {
     ## get tree
-    tree <- get_tree(dalymod$dismod, node)
+    tree <- get_tree(.dalymod$dismod, node)
     
     ## compile samples in nested list
-    samp_list <- lapply(tree, function(x) dalymod$nodes[[x]]$val$samp$SAMPLES)
+    samp_list <- lapply(tree, function(x) .dalymod$nodes[[x]]$val$samp$SAMPLES)
     n_inner <- length(samp_list[[1]]) # number of country-years
     
     ## prepare output
-    inc <- dalymod$nodes[[node]]$val$samp[, 1:2]
+    inc <- .dalymod$nodes[[node]]$val$samp[, 1:2]
     
     ## loop over samples and calculate product
     for (j in seq(n_inner)) {
