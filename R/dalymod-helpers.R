@@ -13,6 +13,7 @@
 ###-----| pre_sample_age .... pre-sampler for AGE type
 ###-----| pre_sample_sex .... pre-sampler for SEX type
 ###---------| get_samples ... actual sampler, get simulations from file
+###-----------| expit ....... inverse logit
 ###---------| sim_fixed ..... actual sampler, fixed
 ###---------| sim_beta ...... actual sampler, beta
 ###---------| sim_gamma ..... actual sampler, gamma
@@ -27,8 +28,6 @@
 ###---| multiply_nodes
 ###-----| get_tree
 ###-- dalymod
-
-library(readxl)
 
 ##--------------------------------------------------------------------------#
 ## generic helpers ---------------------------------------------------------#
@@ -276,25 +275,25 @@ function(n_samples, file, transformation, denominator) {
       ISO3 = FERG2:::countries$ISO3,
       YEAR = unique(sim$YEAR))
   sim_out <-
-    merge(sim_out, FERG2:::countries[, c("ISO3", "REG2", "SUB2")])
+    base::merge(sim_out, FERG2:::countries[, c("ISO3", "REG2", "SUB2")])
   names(sim_out)[names(sim_out) == "ISO3"] <- "COUNTRY"
   
   ## integrate samples
   if (!is.null(sim$COUNTRY)) {
     sim_out <-
-      merge(sim_out, sim[, c("COUNTRY", "YEAR", "SAMPLES")])
+      base::merge(sim_out, sim[, c("COUNTRY", "YEAR", "SAMPLES")])
     
   } else if (!is.null(sim$SUB2)) {
     sim_out <-
-      merge(sim_out, sim[, c("SUB2", "YEAR", "SAMPLES")])
+      base::merge(sim_out, sim[, c("SUB2", "YEAR", "SAMPLES")])
     
   } else if (!is.null(sim$REG2)) {
     sim_out <-
-      merge(sim_out, sim[, c("REG2", "YEAR", "SAMPLES")])
+      base::merge(sim_out, sim[, c("REG2", "YEAR", "SAMPLES")])
     
   } else {
     sim_out <-
-      merge(sim_out, sim[, c("YEAR", "SAMPLES")])
+      base::merge(sim_out, sim[, c("YEAR", "SAMPLES")])
   }
 
   sim_out <- sim_out[, c("COUNTRY", "YEAR", "SAMPLES")]
