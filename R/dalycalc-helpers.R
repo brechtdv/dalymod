@@ -95,8 +95,13 @@ get_rle <-
 
 list_sum <-
   function(x) {
-    # rowSums(data.frame(x))
-    rowSums(do.call("cbind", x))
+    # compile results as matrix
+    y <- do.call("cbind", x)
+    if (is.null(y)) { # if empty, return 0
+      0
+    } else { # if not empty, calculate row sums
+      rowSums(y)
+    }
   }
 
 ## main wrapper for DALY calculations
@@ -313,7 +318,7 @@ dalycalc_aggregate_nodes <-
       stop("Input must be of class ", sQuote("dalycalc"))
     
     ## aggregate nodes
-    dalycalc_agg <- vector("list", length(.dalycalc[[1]]))
+    dalycalc_agg <- vector("list", length(.dalycalc[[1]])) # country
     names(dalycalc_agg) <- names(.dalycalc[[1]])
     age_names <- sapply(.dalycalc[[1]][[1]], function(x) x$AGE)
     sex_names <- sapply(.dalycalc[[1]][[1]], function(x) x$SEX)
