@@ -248,17 +248,36 @@ dalycalc_node <-
         node_dsw <- subset(node_dsw, YEAR == year)
       }
       
-      # build in lifelong duration ~country/agesex
-      # if/else the below? because now dur same for each age-sex
+      # if lifelong duration, get duration from 'lle' dataframe
+      # otherwise, use duration from dalymod
+      # TO DO > make LLE sex specific!
       
-      for (i in seq_along(dalycalc_all)) { # country
-        for (j in seq_along(dalycalc_all[[i]])) { # age-sex
-          dalycalc_all[[i]][[j]]$YLD_NR <-
-            dalycalc_all[[i]][[j]]$INC_NR *
+      if ("LIFELONG" %in% names(node_dur)) {
+        for (i in seq_along(dalycalc_all)) { # country
+          for (j in seq_along(dalycalc_all[[i]])) { # age-sex
+            dalycalc_all[[i]][[j]]$YLD_NR <-
+              dalycalc_all[[i]][[j]]$INC_NR *
+              subset(
+                lle,
+                ISO3 == names(dalycalc_all)[i] &
+                  AGE == dalycalc_all[[i]][[j]]$AGE &
+                  #SEX == dalycalc_all[[i]][[j]]$SEX &
+                  YEAR == dalycalc_all[[i]][[j]]$YEAR)$LLE *
+              node_dsw$SAMPLES[[i]]
+          }
+        }
+        
+      } else {
+        for (i in seq_along(dalycalc_all)) { # country
+          for (j in seq_along(dalycalc_all[[i]])) { # age-sex
+            dalycalc_all[[i]][[j]]$YLD_NR <-
+              dalycalc_all[[i]][[j]]$INC_NR *
               node_dur$SAMPLES[[i]] *
               node_dsw$SAMPLES[[i]]
+          }
         }
       }
+
     }
     
     ## calculate YLL & rename INC_NR to MRT_NR

@@ -322,13 +322,19 @@ pre_sample_input <-
         input$data$`File name`,
         input$data$Transformation,
         input$dnmn))
+    
+    ## lifelong duration
+    if (input$dist == "Lifelong")
+      return(
+        data.frame(
+          COUNTRY = "ALL",
+          YEAR = "ALL",
+          LIFELONG = TRUE))
 
     ## generate samples
     samples <-
       switch(
         input$dist,
-        # "Lifelong" =
-        #   "lifelong",
         "Gamma" =
           mapply(
             sim_gamma,
