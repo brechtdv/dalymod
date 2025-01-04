@@ -324,7 +324,7 @@ sim_unif <-
 
 sim_pert <-
   function(n, mode, min, max) {
-    bp <- prevalence::betaPERT(a = min, m = mode, b = max)
+    bp <- betaPERT(a = min, m = mode, b = max)
     return(rbeta(n, bp$alpha, bp$beta) * (bp$b - bp$a) + bp$a)
   }
 
