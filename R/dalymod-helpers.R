@@ -24,10 +24,10 @@
 ###---------| optim_beta .... find beta pars through optimization
 ###---------| betaPert ...... calculate beta pars for PERT
 ###-- normalize_splits ...... normalize samples for splits
-###-- multiply_dalymod
-###---| multiply_nodes
-###-----| get_tree
-###-- dalymod
+###-- multiply_dalymod ...... multiply all nodes in dalymod object
+###---| multiply_nodes ...... multiply node in dalymod object
+###-----| get_tree .......... get parent nodes from disease model
+###-- dalymod ............... main wrapper function
 
 ##--------------------------------------------------------------------------#
 ## generic helpers ---------------------------------------------------------#
@@ -624,18 +624,40 @@ multiply_dalymod <-
 multiply_nodes <-
   function(.dalymod, node) {
     ## get tree
-    tree <- get_tree(.dalymod$dismod, node)
+    tree <- rev(get_tree(.dalymod$dismod, node))
+      
+    ## prepare samples dataframe
+    samp_df <- .dalymod$nodes[[1]]$val$samp
+    if (all(samp_df$COUNTRY == "ALL")) samp_df$COUNTRY <- NULL
+    if (all(samp_df$YEAR == "ALL")) samp_df$YEAR <- NULL
     
-    ## compile samples in nested list
-    samp_list <- lapply(tree, function(x) .dalymod$nodes[[x]]$val$samp$SAMPLES)
-    n_inner <- length(samp_list[[1]]) # number of country-years
+    ## merge in possible other samples
+    for (i in seq_along(tree)[-1]) {
+      samp_df2 <- .dalymod$nodes[[tree[i]]]$val$samp
+      if (all(samp_df2$COUNTRY == "ALL")) samp_df2$COUNTRY <- NULL
+      if (all(samp_df2$YEAR == "ALL")) samp_df2$YEAR <- NULL
+      names(samp_df2)[names(samp_df2) == "SAMPLES"] <- paste0("SAMPLES", i)
+      samp_df <- merge(samp_df, samp_df2)
+    }
+    
+    ## add COUNTRY and YEAR if needed
+    if (is.null(samp_df$COUNTRY))
+      samp_df$COUNTRY <- "ALL"
+    if (is.null(samp_df$YEAR))
+      samp_df$YEAR <- "ALL"
     
     ## prepare output
-    inc <- .dalymod$nodes[[node]]$val$samp[, 1:2]
+    inc <- samp_df[, c("COUNTRY", "YEAR")]
+    n_inner <- nrow(inc)
     
     ## loop over samples and calculate product
     for (j in seq(n_inner)) {
-      samp_list_prod <- apply(sapply(samp_list, function(x) x[[j]]), 1, prod)
+      samp_list_prod <-
+        apply(
+          sapply(
+            samp_df[, grepl("SAMPLES", names(samp_df)), drop = FALSE],
+            function(x) x[[j]]),
+          1, prod)
       inc$SAMPLES[j] <- list(samp_list_prod)
     }
     
