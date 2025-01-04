@@ -637,7 +637,7 @@ multiply_nodes <-
       if (all(samp_df2$COUNTRY == "ALL")) samp_df2$COUNTRY <- NULL
       if (all(samp_df2$YEAR == "ALL")) samp_df2$YEAR <- NULL
       names(samp_df2)[names(samp_df2) == "SAMPLES"] <- paste0("SAMPLES", i)
-      samp_df <- merge(samp_df, samp_df2)
+      samp_df <- base::merge(samp_df, samp_df2)
     }
     
     ## add COUNTRY and YEAR if needed
