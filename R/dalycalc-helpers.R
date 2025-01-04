@@ -4,22 +4,22 @@
 
 ###=========================================================================#
 ###== FUNCTIONS ============================================================#
-###-- split_agesex_all .............. main wrapper
-###---| split_agesex .............. main wrapper
-###-----| split_age_string .............. main wrapper
-###-----| split_sex_string .............. main wrapper
-###-- get_rle .............. main wrapper
-###-- list_sum .............. main wrapper
-###-- dalycalc .............. main wrapper
-###---| dalycalc_node .............. main wrapper
-###-- dalycalc_aggregate_nodes .............. main wrapper
-###-- dalycalc_aggregate_agesex .............. main wrapper
-###-- dalycalc_aggregate_country .............. main wrapper
-###-- dalycalc_summary .............. main wrapper
-###---| dalycalc_summary_par .............. main wrapper
-###-----| dalycalc_summary_par_age .............. main wrapper
-###-- dalycalc_add .............. main wrapper
-###-- dalycalc_mult .............. main wrapper
+###-- split_agesex_all ............... main wrapper
+###---| split_agesex ................. main wrapper
+###-----| split_age_string ........... main wrapper
+###-----| split_sex_string ........... main wrapper
+###-- get_rle ........................ main wrapper
+###-- list_sum ....................... main wrapper
+###-- dalycalc ....................... main wrapper
+###---| dalycalc_node ................ main wrapper
+###-- dalycalc_aggregate_nodes ....... main wrapper
+###-- dalycalc_aggregate_agesex ...... main wrapper
+###-- dalycalc_aggregate_country ..... main wrapper
+###-- dalycalc_summary ............... main wrapper
+###---| dalycalc_summary_par ......... main wrapper
+###-----| dalycalc_summary_par_age ... main wrapper
+###-- dalycalc_add ................... main wrapper
+###-- dalycalc_mult .................. main wrapper
 
 ##--------------------------------------------------------------------------#
 ## generic helpers ---------------------------------------------------------#
@@ -124,7 +124,8 @@ dalycalc <-
     
     ## calculate DALYs across YLD/YLL nodes
     ## .. .dalycalc is list of node>country>agesex
-    nodes <- subset(.dalymod$dismod, CONTRIBUTION != "NA")$NODE
+    nodes <-
+      subset(.dalymod$dismod, CONTRIBUTION != "NA" | INCIDENCE == "YES")$NODE
     cli_progress_step("Calculating DALYs across nodes", spinner = TRUE)
     .dalycalc <-
       lapply(.dalymod$nodes[nodes],
@@ -279,6 +280,15 @@ dalycalc_node <-
               dalycalc_all[[i]][[j]]$INC_NR *
               node_dur$SAMPLES[[i]] *
               node_dsw$SAMPLES[[i]]
+          }
+        }
+      }
+      
+      ## set INC_NR to zero if no INC contribution
+      if (node$set$incidence == "NO") {
+        for (i in seq_along(dalycalc_all)) { # country
+          for (j in seq_along(dalycalc_all[[i]])){ # age-sex
+            dalycalc_all[[i]][[j]]$INC_NR <- NULL
           }
         }
       }
