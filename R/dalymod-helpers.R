@@ -76,7 +76,8 @@ import_dalymod <-
 import_node <-
   function(file, node) {
     ## read Excel node
-    xl_node <- read_excel_base(file, node, col_names = FALSE)
+    xl_node <-
+      read_excel_base(file, node, col_names = FALSE, col_types = "text")
     
     ## define row numbers
     row_type <- which(xl_node[[1]] == "TYPE")
