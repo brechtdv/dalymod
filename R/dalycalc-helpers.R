@@ -398,6 +398,9 @@ dalycalc_aggregate_agesex <-
     agesex_oldnew <-
       base::merge(base::merge(agesex_old, age_df), sex_df)
     
+    ## restore order of 'agesex_old'
+    agesex_oldnew <- base::merge(agesex_old, agesex_oldnew, sort = FALSE)
+    
     ## prepare object to hold results
     dalycalc_agg <- vector("list", length(.dalycalc))
     names(dalycalc_agg) <- names(.dalycalc)
