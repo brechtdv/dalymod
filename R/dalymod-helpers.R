@@ -127,9 +127,9 @@ import_node <-
     ## setup node age
     dismod_node$age <- list()
     dismod_node$age$type <- "AGE"
-    dismod_node$age$dist <- "age"  
-    dismod_node$age$data <- xl_node[(row_age+2):(row_sex-2), 2:21]  
-    colnames(dismod_node$age$data) <- xl_node[row_age+1, 2:21]
+    dismod_node$age$dist <- "age"
+    dismod_node$age$data <- xl_node[(row_age+2):(row_sex-2), -1]  
+    colnames(dismod_node$age$data) <- xl_node[row_age+1, -1]
     rownames(dismod_node$age$data) <- NULL
     
     ## setup node sex
