@@ -26,7 +26,7 @@
 
 split_agesex_all <-
   function(agesex_agg_all, country, pop) {
-    agesex_all <- sapply(agesex_agg_all, split_agesex, country, pop)
+    agesex_all <- lapply(agesex_agg_all, split_agesex, country, pop)
     agesex_all <- unlist(agesex_all, recursive = FALSE)
     return(agesex_all)
   }
@@ -60,6 +60,12 @@ split_age_string <-
         
       } else if (age == "1-4") {
         c(1, 5)
+        
+      } else if (age == "1+") {
+        c(1, seq(5, 85, 5), Inf)
+        
+      } else if (age == "0+") {
+        c(0, 1, seq(5, 85, 5), Inf)
         
       } else if (grepl("<", age)) {
         c(0, 1, seq(5, as.numeric(gsub("<", "", age)), 5))
