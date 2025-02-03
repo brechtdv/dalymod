@@ -451,7 +451,7 @@ pre_sample_age <-
           sum(as.numeric(as.matrix(input$data[, age_names]))),
           nrow(input$data)))) {
       samples <-
-        apply(input$data[, age_names], 1,
+        apply(input$data[, age_names, drop = FALSE], 1,
               function(x) sapply(as.numeric(x), rep, each = n_samples),
               simplify = FALSE)
       samples <-
@@ -460,7 +460,7 @@ pre_sample_age <-
     } else {
       samples <-
         apply(
-          input$data[, age_names], 1, 
+          input$data[, age_names, drop = FALSE], 1, 
           function(x)
             t(rmultinom(n_samples, sum(as.numeric(x)), as.numeric(x)) /
                 sum(as.numeric(x))),
