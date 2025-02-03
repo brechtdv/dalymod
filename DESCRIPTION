@@ -1,7 +1,7 @@
 Package: dalymod
 Title: Disease Model Based DALY Calculation
-Version: 0.0.8
-Date: 2025-02-02
+Version: 0.0.9
+Date: 2025-02-03
 Authors@R: person("Brecht", "Devleesschauwer", role = c("aut", "cre"),
 	              email = "brechtdv@gmail.com")
 Author: Brecht Devleesschauwer [aut, cre]
