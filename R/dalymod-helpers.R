@@ -628,7 +628,7 @@ multiply_nodes <-
     tree <- rev(get_tree(.dalymod$dismod, node))
       
     ## prepare samples dataframe
-    samp_df <- .dalymod$nodes[[1]]$val$samp
+    samp_df <- .dalymod$nodes[[tree[1]]]$val$samp
     if (all(samp_df$COUNTRY == "ALL")) samp_df$COUNTRY <- NULL
     if (all(samp_df$YEAR == "ALL")) samp_df$YEAR <- NULL
     
