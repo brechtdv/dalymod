@@ -524,11 +524,20 @@ dalycalc_summary_par_age <-
   function(.dalycalc_agg_age, par) {
     out <-
     data.frame(
-      AGE = sapply(.dalycalc_agg_age, function(x) x$AGE),
-      SEX = sapply(.dalycalc_agg_age, function(x) x$SEX),
-      POP = sapply(.dalycalc_agg_age, function(x) x$POP),
-      t(sapply(.dalycalc_agg_age, function(x) bd::mean_ci(x[[par]]))))
-    names(out) <- c("AGE", "SEX", "POP", "VAL_MEAN", "VAL_LWR", "VAL_UPR")
+      AGE =
+        sapply(.dalycalc_agg_age, function(x) x$AGE),
+      SEX =
+        sapply(.dalycalc_agg_age, function(x) x$SEX),
+      POP =
+        sapply(.dalycalc_agg_age, function(x) x$POP),
+      VAL_MEAN =
+        sapply(.dalycalc_agg_age, function(x) mean(x[[par]])),
+      VAL_MEDIAN =
+        sapply(.dalycalc_agg_age, function(x) median(x[[par]])),
+      VAL_LWR =
+        sapply(.dalycalc_agg_age, function(x) quantile(x[[par]], 0.025)),
+      VAL_UPR =
+        sapply(.dalycalc_agg_age, function(x) quantile(x[[par]], 0.975)))
     return(out)
   }
 
