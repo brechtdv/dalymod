@@ -538,6 +538,7 @@ dalycalc_summary_par_age <-
         sapply(.dalycalc_agg_age, function(x) quantile(x[[par]], 0.025)),
       VAL_UPR =
         sapply(.dalycalc_agg_age, function(x) quantile(x[[par]], 0.975)))
+    rownames(out) <- NULL
     return(out)
   }
 
