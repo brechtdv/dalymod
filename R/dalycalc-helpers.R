@@ -546,16 +546,41 @@ dalycalc_add <-
   function(...) {
     x <- list(...)
     out <- x[[1]]
+    out_names <- names(out)
+    
     for (i in seq_along(x)[-1]) {  # objects
-      for (j in seq_along(x[[i]])) {  # countries
-        for (k in seq_along(x[[i]][[j]])) {  # age-sex
-          out[[j]][[k]]$POP <- out[[j]][[k]]$POP + x[[i]][[j]][[k]]$POP
-          out[[j]][[k]]$INC_NR <- out[[j]][[k]]$INC_NR + x[[i]][[j]][[k]]$INC_NR
-          out[[j]][[k]]$MRT_NR <- out[[j]][[k]]$MRT_NR + x[[i]][[j]][[k]]$MRT_NR
-          out[[j]][[k]]$YLD_NR <- out[[j]][[k]]$YLD_NR + x[[i]][[j]][[k]]$YLD_NR
-          out[[j]][[k]]$YLL_NR <- out[[j]][[k]]$YLL_NR + x[[i]][[j]][[k]]$YLL_NR
-          out[[j]][[k]]$DALY_NR <- out[[j]][[k]]$DALY_NR + x[[i]][[j]][[k]]$DALY_NR
-        }
+      
+      if (!is.null(x[[i]])) {
+        
+        # check consistency in country names
+        if (!all(out_names %in% names(x[[i]])))
+          stop("Identified mismatch in country names.")
+        if (!all(names(x[[i]]) %in% out_names))
+          stop("Identified mismatch in country names.")
+        
+        for (j in out_names) {  # countries
+          
+          # check consistency in settings
+          if (!all(sapply(out[[j]], function(x) x$POP) ==
+                   sapply(x[[i]][[j]], function(x) x$POP)))
+            stop("Identified mismatch in POP in country ", j)
+          
+          if (!all(sapply(out[[j]], function(x) x$AGE) ==
+                   sapply(x[[i]][[j]], function(x) x$AGE)))
+            stop("Identified mismatch in AGE in country ", j)
+          
+          if (!all(sapply(out[[j]], function(x) x$SEX) ==
+                   sapply(x[[i]][[j]], function(x) x$SEX)))
+            stop("Identified mismatch in SEX in country", j)
+          
+          for (k in seq_along(x[[i]][[j]])) {  # age-sex
+            out[[j]][[k]]$INC_NR <- out[[j]][[k]]$INC_NR + x[[i]][[j]][[k]]$INC_NR
+            out[[j]][[k]]$MRT_NR <- out[[j]][[k]]$MRT_NR + x[[i]][[j]][[k]]$MRT_NR
+            out[[j]][[k]]$YLD_NR <- out[[j]][[k]]$YLD_NR + x[[i]][[j]][[k]]$YLD_NR
+            out[[j]][[k]]$YLL_NR <- out[[j]][[k]]$YLL_NR + x[[i]][[j]][[k]]$YLL_NR
+            out[[j]][[k]]$DALY_NR <- out[[j]][[k]]$DALY_NR + x[[i]][[j]][[k]]$DALY_NR
+          }
+        } 
       }
     }
     return(out) 
