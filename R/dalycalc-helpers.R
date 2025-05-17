@@ -501,7 +501,8 @@ dalycalc_samples <-
 dalycalc_summary <-
   function(
     .dalycalc_agg,
-    pars = c("INC_NR", "MRT_NR", "YLD_NR", "YLL_NR", "DALY_NR")) {
+    pars = c("INC_NR", "MRT_NR", "YLD_NR", "YLL_NR", "DALY_NR",
+             "MRT_INC", "YLD_INC", "YLL_INC", "DALY_INC")) {
     ## check class
     if (!("dalycalc_agg" %in% class(.dalycalc_agg)))
       stop("Input must be of class ", sQuote("dalycalc_agg"))
@@ -512,7 +513,7 @@ dalycalc_summary <-
     out_df <- dplyr::bind_rows(out_lst, .id = "MEASURE")
     return(out_df)
   }
-    
+
 dalycalc_summary_par <-
   function(.dalycalc_agg, par) {
     out_lst <- lapply(.dalycalc_agg, dalycalc_summary_par_age, par)
@@ -522,22 +523,35 @@ dalycalc_summary_par <-
 
 dalycalc_summary_par_age <-
   function(.dalycalc_agg_age, par) {
+    # define numerator/denominator
+    par1 <- paste0(gsub("_.*", "", par), "_NR")
+    par2 <- paste0(gsub(".*_", "", par), "_NR")
+    
+    # add dummy denominator
+    .dalycalc_agg_age <-
+      lapply(.dalycalc_agg_age, 
+             function(x) {
+               x$NR_NR <- 1
+               return(x)
+               })
+    
+    # compile summaries
     out <-
-    data.frame(
-      AGE =
-        sapply(.dalycalc_agg_age, function(x) x$AGE),
-      SEX =
-        sapply(.dalycalc_agg_age, function(x) x$SEX),
-      POP =
-        sapply(.dalycalc_agg_age, function(x) x$POP),
-      VAL_MEAN =
-        sapply(.dalycalc_agg_age, function(x) mean(x[[par]])),
-      VAL_MEDIAN =
-        sapply(.dalycalc_agg_age, function(x) median(x[[par]])),
-      VAL_LWR =
-        sapply(.dalycalc_agg_age, function(x) quantile(x[[par]], 0.025)),
-      VAL_UPR =
-        sapply(.dalycalc_agg_age, function(x) quantile(x[[par]], 0.975)))
+      data.frame(
+        AGE =
+          sapply(.dalycalc_agg_age, function(x) x$AGE),
+        SEX =
+          sapply(.dalycalc_agg_age, function(x) x$SEX),
+        POP =
+          sapply(.dalycalc_agg_age, function(x) x$POP),
+        VAL_MEAN =
+          sapply(.dalycalc_agg_age, function(x) mean(x[[par1]] / x[[par2]])),
+        VAL_MEDIAN =
+          sapply(.dalycalc_agg_age, function(x) median(x[[par1]] / x[[par2]])),
+        VAL_LWR =
+          sapply(.dalycalc_agg_age, function(x) quantile(x[[par1]] / x[[par2]], 0.025)),
+        VAL_UPR =
+          sapply(.dalycalc_agg_age, function(x) quantile(x[[par1]] / x[[par2]], 0.975)))
     rownames(out) <- NULL
     return(out)
   }
