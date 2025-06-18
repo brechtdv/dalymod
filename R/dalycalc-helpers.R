@@ -126,17 +126,18 @@ dalycalc <-
     }
     
     ## aggregate pop by country
-    pop_country <- aggregate(POP ~ ISO3, pop, sum)
+    # pop_country <- aggregate(POP ~ ISO3, pop, sum)
     
     ## calculate DALYs across YLD/YLL nodes
     ## .. .dalycalc is list of node>country>agesex
     nodes <-
       subset(.dalymod$dismod, CONTRIBUTION != "NA" | INCIDENCE == "YES")$NODE
     cli_progress_step("Calculating DALYs across nodes", spinner = TRUE)
-    .dalycalc <-
-      lapply(.dalymod$nodes[nodes],
-             dalycalc_node, year, pop_country, pop, rle)
-
+    # .dalycalc <-
+    #   lapply(.dalymod$nodes[nodes],
+    #          dalycalc_node, year, pop_country, pop, rle)
+    .dalycalc <- lapply(.dalymod$nodes[nodes], dalycalc_node, year, pop, rle)
+    
     ## add S3 class
     class(.dalycalc) <- "dalycalc"
       
@@ -145,7 +146,19 @@ dalycalc <-
   }
 
 dalycalc_node <-
-  function(node, year, pop_country, pop, rle) {
+  # function(node, year, pop_country, pop, rle) {
+  function(node, year, pop, rle) {
+    ## aggregate population by country
+    ## .. this calculates correct pop denominator for age-specific nodes
+    if (grepl("#", node$set$name)) {
+      node_age <- gsub(".*#", "", node$set$name)
+      node_age <- split_age_string(node_age)
+      pop_country <- aggregate(POP ~ ISO3, subset(pop, AGE %in% node_age), sum)
+      
+    } else {
+      pop_country <- aggregate(POP ~ ISO3, pop, sum)
+    }
+    
     ## extract incidence
     node_inc <- node$inc
     
@@ -316,6 +329,19 @@ dalycalc_node <-
           dalycalc_all[[i]][[j]]$INC_NR <- NULL
         }
       }
+    }
+    
+    ## impose consistent order
+    order_to <-
+      paste(
+        rep(split_age_string("0+"), each = 2),
+        rep(c("Male", "Female"), 19))
+    order_from <-
+      paste(
+        sapply(dalycalc_all[[1]], function(x) x$AGE),
+        sapply(dalycalc_all[[1]], function(x) x$SEX))
+    for (i in seq_along(dalycalc_all)) { # country
+      dalycalc_all[[i]] <- dalycalc_all[[i]][match(order_from, order_to)]
     }
     
     ## return dalycalc node
