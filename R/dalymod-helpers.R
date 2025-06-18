@@ -96,6 +96,7 @@ import_node <-
     ## setup node settings
     dismod_node$set$contribution <- xl_node[row_cnt, 2]
     dismod_node$set$incidence <- xl_node[row_inc, 2]
+    dismod_node$set$name <- node
 
     ## setup node value
     dismod_node$val <- list()
